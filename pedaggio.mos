@@ -1,0 +1,55 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    strade = 1..10
+    lung : array(strade) of integer
+    cf : array(strade) of integer
+
+    y : array(strade) of mpvar
+
+    Ob: array(strade) of linctr
+  end-declarations
+
+  lung::[7,6,4,9,3,2,1,8,5,10]
+  cf ::[10,3,9,16,8,14,7,2,6,50]
+
+  forall(i in strade) do
+    y(i) is_integer
+    y(i)>=0
+  end-do
+
+  y(10)=0
+
+  forall(i in 1..9) do
+    y(i)*lung(i) +cf(i) <=49
+  end-do
+
+  forall(i in strade) do
+    Ob(i) := y(i)*lung(i) +cf(i)
+  end-do
+
+  forall(i in strade) do
+    maximise(Ob(i))
+    writeln("pedaggio relativo alla strada ",i,": ",getsol(y(i)))
+    writeln("guadagno: ",getobjval)
+  end-do
+  
+  writeln("ora cambio i valori in modo che si abbia 49 sulle strade 3,7")
+  forall(i in 1..9) do 
+    if(i<>3 and i<>7) then 
+      y(i)=100
+      end-if
+  end-do
+  
+
+
+  
+writeln("*****************punto b*******************")
+declarations
+z_star = 49
+end-declarations
+
+end-model

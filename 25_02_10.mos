@@ -1,0 +1,78 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    OP = 1..7
+    CH = 1..6
+    durata : array(CH) of integer
+    numero_ch :array(CH) of integer
+    ritardi : array(OP) of integer
+    dur : array(OP) of integer
+    x : array(OP,CH) of mpvar ! numero di chiamate del tipo j che fa l'operatore i
+    y : array(OP) of mpvar ! 1 se l'operatore i è utilizzato
+   ob:linctr
+   wasted : linctr
+  end-declarations
+
+durata :: [20,30,50,90,130,170]
+numero_ch ::[80,60,40,50,30,15]
+ritardi :: [1,2,1,2,1,2,2]
+
+forall(i in OP,j in CH) x(i,j) is_integer
+forall(i in OP) y(i) is_binary
+
+
+forall(i in OP) do
+    sum(j in CH)x(i,j)<=100*y(i) ! ogni operatore deve rispondere al massimo a 100 chiamate
+    sum(j in CH)(x(i,j)*(durata(j)+ritardi(i)))<=3602*y(i) !stare dentro con i tempi
+    end-do
+! soddisfare tutte le chiamate
+forall(j in CH) sum(i in OP)x(i,j)>=numero_ch(j)
+
+ob := sum(i in OP)y(i)
+
+minimise(ob)
+writeln("sol:   ",getobjval)
+
+forall(i in OP) do
+  if(getsol(y(i))>0) then
+      forall(j in CH) do
+        if(getsol(x(i,j))>0) then 
+          writeln("operatore ",i," risponde esattamente a ",getsol(x(i,j))," chiamate del tipo ",j)
+          writeln("operatore ",i," chiama in totale ",getsol(x(i,j))*durata(j)," secondi")
+          end-if
+      end-do
+      writeln("")
+      end-if
+  end-do
+wasted := sum(i in OP,j in CH)(x(i,j)*ritardi(i))
+writeln(" IL RITARDO TOTALE ACCUMULATO:   ",getsol(wasted))
+
+
+writeln("+++++++++++++++ PUNTO B+++++++++++++++++")
+
+!fissiamo a 5 il numero di operatori 
+sum(i in OP) y(i)=5
+
+
+
+
+
+minimise(wasted)
+writeln("la quantità minima di tempo sprecato è:   ",getobjval)
+
+writeln("      ")
+forall(i in OP) do
+  if(getsol(y(i))>0) then
+      forall(j in CH) do
+        if(getsol(x(i,j))>0) then 
+          writeln("operatore ",i," risponde esattamente a ",getsol(x(i,j))," chiamate del tipo ",j)
+          writeln("operatore ",i," chiama in totale ",getsol(x(i,j))*durata(j)," secondi")
+          end-if
+      end-do
+      writeln("")
+      end-if
+  end-do
+end-model

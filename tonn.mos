@@ -1,0 +1,103 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    mezzi = 1..3
+    tratte = 1..4
+
+    mz : array(mezzi) of string
+    tr : array(tratte) of string
+    costo : array(mezzi,tratte) of integer
+    cambi : array(mezzi,mezzi) of integer
+    x : array(mezzi,tratte) of mpvar ! x(i,j)=1 se utilizzo il mezzo i per il tratto j
+    y : array(mezzi,mezzi,2..4) of mpvar ! y(i,j,k) = 1 se passo dal mezzo i al mezzo j dopo la tratta k
+    costi:linctr
+  end-declarations
+
+  tr :: ["1-2","2-3","3-4","4-5"]
+  mz :: ["ferrovia","strada","aereo"]
+  costo :: [30,40,30,60,
+          20,40,50,60,
+          40,10,60,60]
+  cambi :: [1,20,20,
+            20,1,10,
+            20,10,1]
+
+  !per ogni tratta devo scegliere un mezzo
+  forall(j in 1..4) do
+    sum(i in 1..3)x(i,j) = 1
+  end-do
+  
+
+  !per ogni cambio devo scegliere un cambio (uso come indici 1,2,3 perché ho tre cambi da scegliere)
+  forall(k in 2..4) do
+    sum(i,j in mezzi) y(i,j,k)=1
+  end-do
+
+  !condizioni sulla y di contiguità 
+  forall(i, j in mezzi, k in 2..4) do
+   y(i,j,k) >= x(i,k-1) + x(j,k) - 1
+end-do
+
+  forall(i in mezzi,j in tratte) x(i,j) is_binary
+  
+  forall(i,j in mezzi,k in 2..4) y(i,j,k) is_binary
+
+  costi := sum(i in mezzi,j in tratte)(x(i,j)*costo(i,j)*20) + sum(i,j in mezzi,k in 2..4)(y(i,j,k)*20*cambi(i,j))
+  minimise(costi)
+  writeln("sol:  ",getobjval)
+  forall(j in tratte, i in mezzi) do
+    if(getsol(x(i,j))>0) then
+    writeln("(",i,",",j,")")
+      writeln("il tratto ",tr(j)," è stato fatto in ",mz(i))
+    end-if
+  end-do
+
+  forall(k in 2..4,i,j  in mezzi) do
+    if(getsol(y(i,j,k))>0) then
+      writeln("passo da ",mz(i)," a ",mz(j)," nella tratta ",tr(k))
+    end-if
+  end-do
+
+
+writeln("*****************PUNTO B**********************")
+
+sum(j in tratte)x(3,j) <= sum(j in tratte)x(2,j)
+minimise(costi)
+writeln("sol:  ",getobjval)
+  forall(j in tratte, i in mezzi) do
+    if(getsol(x(i,j))>0) then
+    writeln("(",i,",",j,")")
+      writeln("il tratto ",tr(j)," è stato fatto in ",mz(i))
+    end-if
+  end-do
+
+  forall(k in 2..4,i,j  in mezzi) do
+    if(getsol(y(i,j,k))>0) then
+      writeln("passo da ",mz(i)," a ",mz(j)," nella tratta ",tr(k))
+    end-if
+  end-do
+
+writeln("*************punto 3***************")
+forall(k in 2..4) do 
+  y(2,3,k)=0
+  y(3,2,k)=0
+  end-do 
+ minimise(costi)
+writeln("sol:  ",getobjval)
+  forall(j in tratte, i in mezzi) do
+    if(getsol(x(i,j))>0) then
+    writeln("(",i,",",j,")")
+      writeln("il tratto ",tr(j)," è stato fatto in ",mz(i))
+    end-if
+  end-do
+
+  forall(k in 2..4,i,j  in mezzi) do
+    if(getsol(y(i,j,k))>0) then
+      writeln("passo da ",mz(i)," a ",mz(j)," nella tratta ",tr(k))
+    end-if
+  end-do 
+
+end-model

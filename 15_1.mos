@@ -1,0 +1,41 @@
+model Modelname
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+  ! problem 15.1: three cities and water transport--> totally uimodular matrix--> resolve the continuous pbl !
+  declarations
+    NODES = 1..12
+    ARCS : range ! number (undefinied) of arcs
+    
+    PIPE: array(ARCS,1..2) of integer ! matrix with two columns and as many rows as number of arcs--> origin->destination of arcs
+    CAP: array(ARCS) of integer
+    SOURCE, SINK: integer
+    TotalFlow:linctr
+    
+  end-declarations
+ 
+initialisations from 'j1water.dat'
+  PIPE CAP SOURCE SINK
+end-initialisations
+ 
+finalize(ARCS)
+
+declarations 
+  FLOW:array(ARCS) of mpvar
+end-declarations 
+ 
+  writeln("Begin running model")
+  
+  forall (a in ARCS) FLOW(a) <= CAP(a)
+  
+  forall (n in NODES | n <> SOURCE and n <> SINK)
+    sum(a in ARCS | PIPE(a,1) = n) FLOW(a) = sum(a in ARCS | PIPE(a,2) = n) FLOW(a) 
+    
+  TotalFlow := sum(a in ARCS | PIPE(a,2)=SINK) FLOW(a) 
+  
+  maximise(TotalFlow)
+  
+  
+  writeln("Total flow: ", getobjval)
+  writeln("End running model")
+end-model

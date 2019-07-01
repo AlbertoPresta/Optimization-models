@@ -1,0 +1,121 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+   ing = 1..6
+   coc = 1..5
+
+   A: array(coc,ing) of real
+   disp: array(ing) of real
+   vinc :array(ing) of linctr
+   cocktail : array(coc) of string
+   ingredienti : array(ing) of string
+   x: array(coc) of mpvar
+   Ob:linctr
+   avanzi : array(ing) of real
+  end-declarations
+
+  cocktail ::["chancy","black russian","sweet italian","molotov","whisky"]
+  ingredienti ::["whisky","vodka","martini bianco","martini rosso","cognac","caffè"]
+  A::[2/3,0,0,1/3,0,0,
+      0,3/4,0,0,0,1/4,
+      0,0,1/4,1/4,1/2,0,
+      0,2/3,1/3,0,0,0,
+      1,0,0,0,0,0]
+
+  disp ::[1.2,1.8,1.6,1.8,0.6,0.5]
+
+  forall(i in coc) do
+    x(i) is_integer
+    x(i)>=0
+  end-do
+
+  ! rispettare le disponibilità
+  forall(j in ing)do
+     vinc(j) := sum(i in coc)x(i)*0.1*A(i,j) <= disp(j)
+    end-do
+
+x(4) -2*x(2)>=0
+
+Ob:=sum(i in coc)x(i)
+
+
+maximise(Ob)
+
+forall(j in ing) do
+avanzi(j) := disp(j) - sum(i in coc)getsol(x(i))*0.1*A(i,j)
+end-do
+
+writeln("sol:  ",getobjval)
+forall(i in coc) do
+  writeln("produco esattamente ",getsol(x(i))," ",cocktail(i))
+end-do
+
+forall(j in ing) do
+  writeln("dell'ingrediente ",ingredienti(j)," sono avanzati ",avanzi(j)," litri")
+end-do
+
+writeln("******************PUNTO B**********************")
+
+declarations
+
+prezzi:array(ing) of integer
+budget : real
+y: array(ing) of mpvar ! y(i)= quantità acquistata dell'alcolico i
+end-declarations
+
+prezzi::[7,2,8,6,5,4]
+
+budget:= sum(j in ing) avanzi(j)*prezzi(j)
+
+
+!nascondo le constraints di prima e ne definisco altre
+forall(j in ing) do
+  sethidden(vinc(j),true)
+end-do
+
+  forall(j in ing) do
+    sum(i in coc)x(i)*0.1*A(i,j) <= disp(j) + y(j)
+  end-do
+
+! bisogna stare dentro il budget
+sum(j in ing) y(j)*prezzi(j)<=budget
+
+forall(j in ing)y(j) is_integer
+
+
+maximise(Ob)
+writeln("sol:  ",getobjval)
+forall(i in coc) do
+  writeln("produco esattamente ",getsol(x(i))," ",cocktail(i))
+end-do
+
+writeln("ho comprato i seguenti alcolici")
+forall(i in ing) do
+  writeln(getsol(y(i))," di ",ingredienti(i))
+  end-do
+
+writeln("******************PUNTO C***************")
+declarations
+av : linctr
+util :array(ing) of linctr
+end-declarations
+
+forall(j in ing) do
+  util(j):= sum(i in coc)x(i)*0.1*A(i,j)
+  end-do
+av := sum(j in ing)(disp(j) + y(j) - util(j))
+minimise(av)
+writeln("sol:  ",getobjval)
+forall(i in coc) do
+  writeln("produco esattamente ",getsol(x(i))," ",cocktail(i))
+end-do
+
+writeln("ho comprato i seguenti alcolici")
+forall(i in ing) do
+  writeln(getsol(y(i))," di ",ingredienti(i))
+  end-do
+
+end-model

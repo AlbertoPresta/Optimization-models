@@ -1,0 +1,45 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+  
+  ii:set of string
+  jj:set of string
+  kk:set of integer
+  
+  FR: array(ii,jj,kk) of integer
+  VC: array(ii,jj,kk) of integer
+  MC:array(ii,jj,kk) of integer
+  EC:array(ii,jj,kk) of integer
+  F: array(ii,jj,kk) of integer
+  WF: array(ii,jj,kk) of integer
+  DL: array(ii,jj,kk) of integer
+  DU: array(ii,jj,kk) of integer
+  IIF:array(ii,jj,kk) of real 
+  
+  !x_e:array(1..m,1..n,1..4) of mpvar
+  !x_f:array(1..m,1..n,1..4) of mpvar
+  end-declarations
+  ii:=  {"SIN", "HKG" ,"KEL" ,"TYO" ,"NGO" ,"UKB", "KHH"}
+  jj:=  {"SIN", "HKG" ,"KEL" ,"TYO" ,"NGO" ,"UKB", "KHH"}
+  kk:= {1,2,3,4}
+  
+  initialisations from '13_may.dat'
+  FR VC  EC F WF DL DU 
+  end-initialisations
+  
+  forall(i in ii,j in jj, k in kk) MC(i,j,k) := FR(i,j,k) -VC(i,j,k) 
+  
+  forall(i in ii,j in jj,k in kk) 
+    if F(i,j,k)>F(j,i,k) then
+      IIF(i,j,k) :=(F(i,j,k) - F(j,i,k))/F(i,j,k) 
+    else
+      IIF(i,j,k) :=0
+    end-if
+
+  writeln("Begin running model")
+  !...
+  writeln("End running model")
+end-model

@@ -1,0 +1,87 @@
+model ModelName
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+declarations
+  tipi = 1..4
+  pattern = 1..13
+  
+  D: array(tipi) of integer !domanda
+  L: array(tipi) of integer !lunghezza
+  
+  C: array(pattern) of integer !scarti
+  
+  A: array(pattern,tipi) of integer !numero di barre di tipo i che si ottengono tagliando secondo il pattern j
+   
+  x: array(pattern) of mpvar
+  
+end-declarations
+
+
+D::[32, 15, 46, 52]
+L::[7, 5, 4, 3]
+
+C::[0, 3, 0, 1, 2, 5, 2, 0, 3, 6, 1, 4, 7]
+
+A::[1, 0, 0, 1,
+	1, 0, 0, 0,
+	0, 2, 0, 0,
+	0, 1, 1, 0,
+	0, 1, 0, 1,
+	0, 1, 0, 0,
+	0, 0, 2, 0,
+	0, 0, 1, 2,
+	0, 0, 1, 1,
+	0, 0, 1, 0,
+	0, 0, 0, 3,
+	0, 0, 0, 2,
+	0, 0, 0, 1]
+
+forall(i in pattern) do
+	x(i) is_integer
+end-do
+
+forall (j in tipi) sum(i in pattern) A(i,j)*x(i) = D(j)
+
+costo := sum(i in pattern) C(i)*x(i)
+
+minimize(costo)
+
+writeln("Soluzione 1: ",getobjval," ", sum(i in pattern) getsol(x(i)))
+
+forall(i in pattern) do
+	if C(i) = 2 then
+		x(i) = 0
+	end-if
+end-do
+
+minimize(costo)
+
+writeln("Soluzione 2: ",getobjval," ",sum(i in pattern) getsol(x(i)))
+
+(! oppure per la prima parte
+
+solo i patterns non dominati
+
+A::[1, 0, 0, 1,
+	0, 2, 0, 0,
+	0, 1, 1, 0,
+	0, 1, 0, 1,
+	0, 0, 2, 0,
+	0, 0, 1, 2,
+	0, 0, 0, 3]
+
+forall(i in pattern) do
+	x(i) is_integer
+end-do
+
+forall (j in tipi) sum(i in pattern) A(i,j)*x(i) >= D(j)
+
+costo := sum(i in pattern) 10*x(i) - sum(j in tipi) L(j)*D(j)
+
+minimize(costo)
+
+la seconda parte di conseguenza
+!)
+
+
+end-model

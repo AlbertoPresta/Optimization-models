@@ -1,0 +1,102 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    tipi = 1..6
+    tot = 1..8
+    fab = 1..2
+    smist = 3..5
+    mag = 6..8
+    domanda : array(tipi) of integer
+    costo :array(tot,tot) of integer
+    cap :array(tot,tot) of integer
+    x: array(tot,tot,tipi) of mpvar !x(i,j,k) = numero di prodotti del tipo k che trasporto dal nodo i al nodo j
+    y:array(tot,tot) of mpvar !y(i,j)=1 se utilizzo l'arco da i a j
+    m_3 : mpvar ! 1 se utilizzo l'ausilio in 3
+    m_4 : mpvar ! 1 se utlizzo l'ausilio in 4
+    Ob:linctr
+  end-declarations
+
+  domanda::[10,20,30,15,25,20]
+  costo::[0,0,6,9,0,0,0,0,
+         0,0,7,12,0,0,0,0,
+         0,0,0,6,8,5,0,0,
+         0,0,0,0,13,0,4,9,
+         0,0,0,0,0,7,9,6,
+         0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0]
+
+  cap::[0,0,30,40,0,0,0,0,
+        0,0,50,20,0,0,0,0,
+        0,0,0,100,40,15,0,0,
+        0,0,0,0,40,0,15,10,
+        0,0,0,0,0,25,35,20,
+        0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0]
+
+  m_3 is_binary
+  m_4 is_binary
+
+  forall(i,j in tot) do
+    y(i,j) is_binary
+    if(cap(i,j)=0) then
+      y(i,j)=0
+    end-if
+  end-do
+
+  forall(i,j in tot,k in tipi) do
+    x(i,j,k) is_integer
+  end-do
+
+  ! se non ho un arco non posso utilizzarlo,altrimenti sono limitato dalla cap
+  forall(i,j in tot) do
+    sum(k in tipi)x(i,j,k)<=cap(i,j)*y(i,j)
+  end-do
+
+  ! quello che parte deve soddisfare le richieste 
+  forall(k in tipi) do
+    sum(i in fab,j in smist)x(i,j,k)>=domanda(k)
+  end-do
+
+  !tutto ciò che entra in smistamento deve anche uscire (nel primo sum ci sono anche tutti gli spostamenti interni ai smistamenti)
+  forall(i in smist,k in tipi) do
+    sum(j in fab+smist)x(j,i,k)=sum(t in smist+mag)x(i,t,k)
+  end-do
+
+
+
+  !gestire gli ausili
+  m_3 >=(sum(i in fab,k in tipi)x(i,3,k) -50)/500
+  m_4 >=(sum(i in 1..3,k in tipi)x(i,4,k) - 50)/500
+
+  Ob:=sum(k in tipi, i,j in tot | i<j)x(i,j,k)*costo(i,j) + m_3*30 + m_4*40
+  minimise(Ob)
+
+  writeln("sol:  ",getobjval)
+
+  forall(i in fab,j in smist) do
+    if(getsol(y(i,j))>0) then
+      writeln("dal nodo ",i," al nodo ",j," passo esattamente ",sum(k in tipi)getsol(x(i,j,k))," elementi ")
+    end-if
+  end-do
+writeln("  ")
+  forall(i in smist,j in smist) do
+    if(getsol(y(i,j))>0) then
+      writeln("dal nodo ",i," al nodo ",j," passo esattamente ",sum(k in tipi)getsol(x(i,j,k))," elementi ")
+    end-if
+  end-do
+
+
+writeln("  jjj")
+  forall(i in smist,j in mag) do
+    if(getsol(y(i,j))>0) then
+      writeln("dal nodo ",i," al nodo ",j," passo esattamente ",sum(k in tipi)getsol(x(i,j,k))," elementi ")
+    end-if
+  end-do
+
+
+end-model

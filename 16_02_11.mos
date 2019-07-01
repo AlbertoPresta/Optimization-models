@@ -1,0 +1,68 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    ORARI = 1..8
+    MAT = 1..4
+    materie :array(MAT) of string
+    ora : array(ORARI) of string
+    disp: array(MAT,ORARI) of integer
+    pref : array(MAT,ORARI) of integer
+    vinc : array(1..6) of linctr
+    x : array(MAT,ORARI) of mpvar ! 1 se la materia i è seguita allo slot j
+    org:linctr
+  end-declarations
+
+materie :: ["fisica","chimica","analisi","geometria"]
+ora :: ["10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18"]
+
+disp :: [1,0,1,0,1,0,1,0,
+        0,1,0,1,0,1,0,1,
+        1,1,1,1,1,1,1,1,
+        1,1,0,1,1,0,1,1]
+
+pref :: [8,0,5,0,9,0,7,0,
+        0,4,0,2,0,8,0,6,
+        7,8,6,4,5,7,9,8,
+        6,7,0,5,4,0,9,8]
+
+! se la materia non è disponibile allora non si può seguire
+forall(i in MAT,j in ORARI) do
+    x(i,j) is_binary
+    x(i,j)<=disp(i,j)
+    end-do
+!tutte le materie seguite solo una volta
+forall(i in MAT) sum(j in ORARI)x(i,j)=1
+!ogni ora solo una materia al massimo
+forall(j in ORARI) sum(i in MAT)x(i,j)<=1
+!non più di due ore consecutive
+forall(j in 1..6) vinc(j):= sum(i in MAT)(x(i,j)+x(i,j+1)+x(i,j+2))<=2
+
+org :=sum(i in MAT,j in ORARI)x(i,j)*pref(i,j)
+maximise(org)
+writeln("sol:   ",getobjval)
+forall(i in MAT,j in ORARI) do 
+    if(getsol(x(i,j))>0) then 
+      writeln(materie(i)," è seguita all'orario ",ora(j)," con preferenza ",pref(i,j),".")
+      end-if
+    end-do
+
+writeln("***************PUNTO B***************")
+
+forall(i in 1..6) do
+  sethidden(vinc(i),true)
+  end-do
+
+forall(j in 1..7)  sum(i in MAT)(x(i,j)+x(i,j+1))<=1
+
+maximise(org)
+writeln("sol:   ",getobjval)
+forall(i in MAT,j in ORARI) do 
+    if(getsol(x(i,j))>0) then 
+      writeln(materie(i)," è seguita all'orario ",ora(j)," con preferenza ",pref(i,j),".")
+      end-if
+    end-do
+
+end-model

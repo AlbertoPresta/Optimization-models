@@ -1,0 +1,85 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+   COMP = 1..3 
+   RAW = 1..7
+   
+   P: array(RAW,COMP) of real !composition of stock of the material
+   PMIN,PMAX:array(COMP) of real ! maximum percentage allowed for the different material
+   AVAIL:array(RAW) of real !disponibilità di ogni stock
+   COST:array(RAW) of real 
+   
+   !decision variable--> quantità utilizzata di ogni materiale
+   use:array(RAW) of mpvar
+   Cost:linctr
+   produce: mpvar
+  end-declarations
+
+P:: [ 2.5,0,1.3, 
+      3,0,0.8,
+      0,0.3,0,
+      0,90,0,
+      0,96,4,
+      0,0.4,1.2,
+      0,0.6,0 ]
+PMIN :: [ 2,0.4,1.2]
+PMAX :: [3,0.6,1.65]
+
+AVAIL :: [400,300,600,500,200,300,250]
+COST :: [200,250,150,220,240,200,165]
+
+!Quantity of steel produced = sum of raw material used
+produce = sum(r in RAW) use(r)
+
+!linear constraints
+
+
+
+! OBJECTIVE FUNCTION 
+
+! Objective function
+ Cost:= sum(r in RAW) COST(r)*use(r)
+
+!linear constraints
+
+forall(c in COMP) do
+  sum(r in RAW) P(r,c)*use(r) >=PMIN(c)*produce
+  sum(r in RAW) P(r,c)*use(r) <=PMAX(c)*produce
+  end-do
+  
+forall(r in RAW) use(r)<=AVAIL(r)
+
+produce >= 500
+
+! solution has to be positive
+!forall(r in RAW) use(r)>=0
+
+
+minimise(Cost)
+
+!PRINTING THE SOLUTION
+
+declarations
+  NAMES: array(RAW) of string
+  end-declarations
+
+NAMES :: ["iron_a1","iron_a2","iron_a3","cop_a1","cop_a2","al_a1","al_a2"]
+
+writeln("Total cost: ",getobjval)
+writeln("Amount of steel produced: ",getsol(produce))
+writeln("Alloys used: ")
+forall(r in RAW)
+  if(getsol(use(r))>0) then
+    write(NAMES(r)," : ",getsol(use(r)),"  ")
+  end-if
+  write("\npercentage(C,Cu,Mn): ")
+  forall(c in COMP)
+    write(getsol(sum(r in RAW) P(r,c)*use(r))/getsol(produce),"%  ")
+  writeln
+  
+
+
+end-model

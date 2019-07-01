@@ -1,0 +1,72 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    vert = 1..8
+    strade : array(vert,vert) of integer
+    x : array(vert,vert) of mpvar !x(i,j) lavatrici che partono da i e arrivano a j
+    y : array(vert,vert) of mpvar !y(i,j) = 1 se utilizzo la strada che unisce i a j
+    lav:linctr
+  end-declarations
+
+  strade:: [0,27,20,0,0,0,0,0,
+            0,0,0,19,15,0,0,0,
+            0,0,0,12,0,0,9,0,
+            0,0,0,0,14,16,0,0,
+            0,0,0,0,0,0,0,18,
+            0,0,0,0,0,0,5,10,
+            0,0,0,0,0,0,0,17,
+            0,0,0,0,0,0,0,0]
+
+  forall(i,j in vert) do
+    y(i,j) is_binary
+    x(i,j) is_integer
+    end-do
+
+  forall(i in vert) y(i,i)=0
+
+  forall(i,j in vert | i<>j) do
+    y(i,j)<=strade(i,j)
+    end-do
+
+  forall(i,j in vert | i<>j ) do
+    x(i,j)<=strade(i,j)*y(i,j)
+    end-do
+
+  sum(i,j in vert | i<>j) y(i,j)<=8
+
+  !tutto ciò che entra deve uscire
+
+  forall(i in 2..7) do
+    sum(j in vert |j<>i)x(i,j) - sum(j in vert | j<>i)x(j,i) = 0
+    end-do
+
+  
+  lav := x(5,8)+x(6,8)+x(7,8)
+  !setparam("XPRS_VERBOSE", TRUE)
+  maximise(lav)
+
+  writeln("sol:  ",getobjval)
+  forall(i,j in vert |i<>j) do 
+    if(getsol(y(i,j))>0) then 
+      writeln("dal nodo ",i," al nodo ",j," trasporto ",getsol(x(i,j))," lavatrici")
+      end-if
+    end-do 
+  
+  writeln("*****************PUNTO B***********************")
+  declarations
+  arc : linctr
+  end-declarations
+  
+  x(5,8)+x(6,8)+x(7,8) = 27 
+  arc := sum(i,j in vert | i<>j)y(i,j)
+  minimise(arc)
+  writeln("sol:  ",getobjval)
+  forall(i,j in vert |i<>j) do 
+    if(getsol(y(i,j))>0) then 
+      writeln("dal nodo ",i," al nodo ",j," trasporto ",getsol(x(i,j))," lavatrici")
+      end-if
+    end-do 
+end-model

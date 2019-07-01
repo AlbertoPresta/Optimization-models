@@ -1,0 +1,87 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    
+  nodi = 1..6
+  archi = 1..7
+  
+  A: array(archi,nodi) of integer
+  l: array(archi) of integer
+  c: array(nodi) of integer
+  
+  
+  
+  vinc: array(archi) of linctr
+  
+  y: array(nodi)of mpvar
+  costi : linctr
+end-declarations
+
+writeln("Begin running model")
+
+A::[1,1,0,0,0,0,
+	0,1,1,0,0,0,
+	0,1,0,0,1,0,
+	0,0,1,1,0,0,
+	0,0,0,1,1,0,
+	0,0,0,1,0,1,
+	0,0,0,0,1,1]
+
+l::[10,35,40,20,15,30,7]
+
+forall(j in nodi) y(j) is_binary
+! tutte le strade devon essere pulite almeno una volta
+forall(i in archi) do 
+  vinc(i) := sum(j in nodi) A(i,j)*y(j)>=1
+end-do
+
+! definire i costi
+
+forall(j in nodi) do 
+  c(j) := sum(i in archi) A(i,j)*l(j)
+end-do
+
+costi := sum(j in nodi) c(j)*y(j)
+minimise(costi)
+
+writeln("sol:  ",getobjval)
+forall(i in nodi) do 
+  if(getsol(y(i))>0) then 
+    writeln("spazzaneve posizionate nella città ",i)
+    end-if
+  end-do 
+  
+writeln("**************PUNTO B*****************")
+
+writeln("A meno si può controllare che l'unica strada ad avere due spazzaneve nelle due estremità è la strada G (7) ")
+
+forall(i,j in nodi | i<j ) do 
+  if(getsol(y(i))>0 and getsol(y(j))>0) then 
+    forall(k in archi) do 
+      if(A(k,i)=1 and A(k,j)=1) then 
+        writeln("città ",k)
+      end-if
+    end-do
+  end-if
+end-do
+
+
+writeln("*****************PUNTO C***********************")
+
+  declarations
+   r : linctr
+  end-declarations
+
+r := sum(i in nodi)y(i)
+minimize(r)
+writeln("sol:  ",getobjval)
+forall(i in nodi) do 
+  if(getsol(y(i))>0) then 
+    writeln("spazzaneve posizionate nella città ",i)
+    end-if
+  end-do 
+
+end-model

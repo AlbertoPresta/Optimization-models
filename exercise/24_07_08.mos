@@ -1,0 +1,95 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    tipi = 1..2
+    mesi = 1..5
+    mesimag = 0..5
+    RT : array(mesi) of integer
+    OT : array(mesi) of integer
+    vendite : array(tipi,mesi) of integer
+    costo_r : array(tipi,mesi) of integer
+    costo_s : array(tipi,mesi) of integer
+    costo_im : array(tipi,mesi) of integer
+    
+    x : array(tipi,mesi) of mpvar ! x(i,j) prodotto del tipo i nel mese j totale
+    x_r : array(tipi, mesi) of mpvar !x_r(i,j) numero di prodotti tipo i che vengono prodotti al mese j con lavoro regolare
+    x_s : array(tipi,mesi) of mpvar ! x_s(i,j) prodotti del tipo i che vengono fatti al mese j con straordinari
+    z : array(tipi,mesimag) of mpvar ! prodotto immagazzinatp 
+   
+    ob1,ob2,ob3 : linctr
+    Ob:linctr
+  end-declarations
+
+RT::[10, 8, 10, 12, 6]
+OT::[3, 2, 3 ,4, 5]
+vendite::[7,5,5,8,3, 4,4,7,4,5]
+costo_r::[15,17,19,13,18, 16,15,17,15,16] 
+costo_s::[18,20,22,17,22, 20,18,22,20,19]
+costo_im::[1,2,3,2,0, 2,1,2,4,0]
+
+forall(i in tipi,j in mesi) do
+    x(i,j) is_integer 
+    x_r(i,j) is_integer
+    x_s(i,j) is_integer
+    end-do
+forall(i in tipi, j in 0..5) z(i, j) is_integer
+
+forall(i in tipi)do 
+  z(i,0)=0 
+  z(i, 5)=0
+  end-do
+
+forall(i in tipi,j in mesi) do 
+  x(i,j) = x_r(i,j) + x_s(i,j)
+  end-do 
+
+
+
+
+
+
+!non posso produrre più di un tot al mese
+
+forall(j in mesi) do
+  sum(i in tipi) x(i,j) <= RT(j) + OT(j)
+  sum(i in tipi) x_r(i,j)<=RT(j)
+  sum(i in tipi)x_s(i,j)<= OT(j)
+  end-do
+
+
+
+! quando uso straordinari 
+
+
+forall(i in tipi,j in mesi) do
+  x(i,j) + z(i,j-1)  >=   vendite(i,j)
+  end-do
+
+! come calcolo ciò che ho in quel momento?
+forall(i in tipi,j in 1..4) do
+  z(i,j) =   z(i, j-1 )  + x(i,j) -vendite(i,j)
+  end-do
+  
+ob1 := sum(i in tipi,j in mesi)x_r(i,j)*costo_r(i,j)*1000
+ob2 := sum(i in tipi,j in mesi)x_s(i,j)*costo_s(i,j)*1000
+ob3 := sum(i in tipi,j in mesi)z(i,j)*costo_im(i,j)*1000
+Ob := ob1+ob2+ob3
+minimise(Ob)
+
+writeln("sol:   ",getobjval)
+
+writeln("Costo totale di produzione: ", getobjval)
+writeln(" ");
+forall(m in mesi) do
+	writeln("ProdTot di tipo A e B per il mese ", m, ":", getsol(x(1, m)), " ", getsol(x(2, m)))
+	writeln("ProdOrd di tipo A e B per il mese ", m, ":", getsol(x_r(1, m)), " ", getsol(x_r(2, m)))  !AGGIUNTO- LC ******************
+	writeln("ProdStr di tipo A e B per il mese ", m, ":", getsol(x_s(1, m)), " ", getsol(x_s(2, m))) !AGGIUNTO- LC ******************
+	writeln("ProdMag di tipo A e B per il mese ", m, ":", getsol(z(1, m)), " ", getsol(z(2, m))) !AGGIUNTO- LC ******************
+    writeln("**************************") !AGGIUNTO- LC ******************
+end-do
+
+
+end-model

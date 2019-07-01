@@ -1,0 +1,80 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  
+
+  declarations
+    index = 1..6
+    quartieri: array(index) of string
+    loc : array(index) of string
+    
+    A : array(index,index) of integer
+    x : array(index) of mpvar
+    vinc : array(index) of linctr
+    availability:linctr
+  end-declarations
+
+  quartieri :: ["Q1","Q2","Q3","Q4","Q5","Q6"]
+  loc :: ["L1","L2","L3","L4","L5","L6"]
+  
+  A :: [1,1,0,0,0,0,
+          1,1,0,0,0,1,
+          0,0,1,0,0,0,
+          0,0,0,1,0,0,
+          0,0,0,0,1,0,
+          0,1,0,0,0,1]
+  
+  forall(i in index) do
+      x(i) is_binary
+      end-do
+  ! linear constraints
+  
+  forall(i in index) do 
+    vinc(i):= sum(j in index) A(i,j)*x(j) >=1
+    end-do
+  availability := sum(i in index) x(i)
+  minimise(availability)
+  
+  
+! write solution
+
+writeln("ecco il numero minimo:  ",getobjval)
+writeln("ecco le stazioni utilizzate:  ")
+forall(i in index) do 
+ writeln(loc(i)," : ",getsol(x(i)))
+ end-do
+ writeln("soldi spesi per le stazioni:  ", getobjval*500000)
+ 
+ 
+ 
+ writeln("********************************PUNTO B*************************")
+ ! declaration--> nuova matrice di percorrenza 
+ declarations
+ AA : array(index,index) of integer 
+ end-declarations
+ 
+ AA ::  [1,1,1,0,0,1,
+      1,1,0,0,1,1,
+      1,0,1,1,0,1,
+      0,0,0,1,1,0,
+      0,1,0,1,1,1,
+      1,1,0,0,1,1]
+
+forall(i in index) do 
+    vinc(i):= sum(j in index) AA(i,j)*x(j) >=1
+    end-do
+  availability := sum(i in index) x(i)
+  minimise(availability)
+!written the solution
+
+writeln("ecco il numero minimo:  ",getobjval)
+writeln("ecco le stazioni utilizzate:  ")
+forall(i in index) do 
+ writeln(loc(i)," : ",getsol(x(i)))
+ end-do
+ 
+ writeln("soldi totali spesi:  ",800000 + getobjval*500000)
+ 
+ writeln("si, conviene migliorare la viabilità")
+
+end-model

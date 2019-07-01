@@ -1,0 +1,101 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+
+
+  declarations
+  materie = 1..9
+  time = 1..9
+  w : array(time) of mpvar ! array che rappresenterà le variabile binaria slot: 1 se se l'i-esimo slot è occupato,
+                              ! 0 altrimenti
+  slot : array(time) of string
+  m : array(materie) of string
+  x : array(materie,time) of mpvar ! 1 se l'i-esima materia viene insegnata alla j-esima ora, 0 otherwise
+  P : array(materie,materie) of integer ! matrice di incompatibilità: 1 se c'è incompatibilità , 0 altrimenti
+  vinc_1 : array(materie) of linctr
+  division:linctr
+  end-declarations
+
+  P :: [0,1,1,1,0,0,1,0,0,
+        1,0,0,0,0,0,0,0,1,
+        1,0,0,1,0,1,1,1,0,
+        1,0,1,0,0,1,0,0,1,
+        0,0,0,0,0,1,1,0,1,
+        0,0,1,1,1,0,1,1,1,
+        1,0,1,0,1,1,0,0,0,
+        0,0,1,0,0,1,0,0,0,
+        0,1,0,1,1,1,0,0,0 ]
+  slot :: ["8-9","9-10","10-11","11-12","12-13","14-15","15-16","16-17","17-18"]
+  m :: ["astronomia", "controlli aut.","Elettronica","fisica","informatica","ML","SP","ricerca op.","telecomunicazioni"]
+  ! ora ci vogliono le constraints
+
+  ! prima : tutte le materie devono essere svolte una e una sola volta 
+  forall(i in materie) do
+    vinc_1(i) := sum(j in time) x(i,j) = 1
+  end-do
+! vincolo di incompatibilità 
+forall(i in materie ,k in materie | k>i, j in time) do  ! si potrebbe anche fare un if condition per diminuire i vincoli
+    (x(i,j) + x(k,j))*P(i,k) <= w(j)
+    end-do
+
+forall(i,j in materie) do 
+    x(i,j) is_binary
+  end-do
+
+forall(i in time) do 
+  w(i) is_binary
+  end-do
+ 
+division := sum(i in time) w(i)
+
+minimise(division)
+
+! print solution 
+writeln("ecco il numero di slot temporali utilizzati: ",getobjval)
+writeln("ECCO L'ORARIO")
+forall(i in time) do
+    if (getsol(w(i))>0) then
+        write(slot(i), " :  ")
+        forall(j in materie) do
+        if (getsol(x(j,i))>0) then
+          write(m(j),"  ")
+          end-if
+      end-do
+      writeln(" ")
+      end-if
+    end-do
+
+
+writeln("********** PUNTO B************")
+
+
+
+forall(j in materie) sum(i in time) x(i,j) <= 2
+
+
+  
+  
+  
+  
+  
+
+  
+    
+minimise(division)
+
+writeln("ecco il numero di slot temporali utilizzati: ",getobjval)
+writeln("ECCO L'ORARIO")
+forall(i in time) do
+    if (getsol(w(i))>0) then
+        write(slot(i), " :  ")
+        forall(j in materie) do
+        if (getsol(x(j,i))>0) then
+          write(m(j),"  ")
+          end-if
+      end-do
+      writeln(" ")
+      end-if
+    end-do
+  
+
+end-model

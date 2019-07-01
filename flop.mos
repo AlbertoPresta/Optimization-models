@@ -1,0 +1,48 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    M = 1.44
+    file = 1..16
+    flop = 1..16 !numero massimo
+    mem:array(file) of real
+
+    y:array(flop) of mpvar
+    x: array(file,flop) of mpvar
+    Ob:linctr
+  end-declarations
+
+  mem::[46/1000,55/1000,62/100,87/1000,108/1000,114/1000,137/1000,164/1000,253/1000,364/1000,372/1000,388/1000,
+        406/1000,432/1000,461/1000,851/1000]
+
+  forall(i in flop) y(i) is_binary
+  forall(i,j in flop)x(i,j) is_binary
+
+  !tutti i file vanno messi almeno una volta
+  forall(i in file) do
+    sum(j in flop)x(i,j)=1
+  end-do
+
+  !cond sul floppy
+  forall(j in flop) do
+    sum(i in file)x(i,j)*mem(i)<=y(j)*M
+  end-do
+
+  Ob:=sum(j in flop)y(j)
+
+  minimise(Ob)
+  writeln("sol: ",getobjval)
+  forall(j in flop) do
+   if(getsol(y(j))>0) then
+       writeln("   ")
+      forall(i in file) do
+        if(getsol(x(i,j))>0) then
+          writeln("file ",i," di peso ",mem(i)," Mb è stato salvato nel floppy ",j)
+        end-if
+      end-do
+    end-if
+  end-do
+
+end-model

@@ -1,0 +1,44 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    TOT = 32+15+46+52 ! al massimo si utilizzano queste barrette
+    lun = 1..4
+    bar = 1..TOT
+    rich : array(lun) of integer
+    lunghezze : array(lun) of integer
+    x : array(bar,lun) of mpvar
+    y : array(bar) of mpvar ! y(i)=1 se utilizzo questa barra
+    scarti:linctr
+    summa:linctr
+  end-declarations
+
+  rich :: [32,15,46,52]
+  lunghezze :: [7,5,4,3]
+
+  forall(i in bar,j in lun) do
+    x(i,j) is_integer
+    x(i,j)>=0
+    end-do
+  forall(i in bar) y(i) is_binary
+
+  ! per ogni tipo di barretta, bisogna soddisfare la rchiesta
+  forall(j in lun) do
+    sum(i in bar) x(i,j)=rich(j)
+    end-do
+  ! se non utilizzo la barra allora non la posso tagliare
+  forall(i in bar) do
+    sum(j in lun)x(i,j)<=10*y(i)
+    y(i)>=sum(j in lun)x(i,j)/10
+    sum(j in lun)x(i,j)*lunghezze(j)<=10 ! ogni barretta è lunga 10
+    end-do
+  summa := sum(i in bar)y(i)
+  scarti := sum(i in lun)(10*y(i) - sum(j in lun)x(i,j)*lunghezze(i))
+  minimise(scarti)
+  writeln("sol:  ",getobjval)  
+  writeln("numero barrette ottenute ",getsol(summa))
+  
+
+end-model

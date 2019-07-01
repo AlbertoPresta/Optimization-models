@@ -1,0 +1,132 @@
+
+model "GERETTO WALTER mat.81700095"
+uses "mmxprs";
+
+forward procedure STAMPA
+forward procedure STAMPA2
+	
+declarations
+VOLI	= 1..13 !numero di voli in arrivo
+SLOT	= 1..15 !slot temporali della durata di 6 minuti
+
+ARRIVO_PREV		: array(VOLI)of integer !minuto di arrivo previsto
+COSTO_RIT		: array(VOLI)of integer !costo per ogni minuto di ritardo in �
+SLOT_START		: array(SLOT)of integer !minuto di inizio di ogni slot
+SLOT_END		: array(SLOT)of integer !minuto di fine di ogni slot
+
+arrivo_slot	:array(SLOT,VOLI) of mpvar 	!variabile binaria che contiene 1 se il volo � stato assegnato
+									   	!allo slot e 0 altrimenti	
+
+arrivo_min: array(VOLI) of mpvar		!variabile intera che contiene il minuto di arrivo stimato per ogni volo
+										!ai fini dell'obiettivo prefissato 
+end-declarations
+
+ARRIVO_PREV		::[0,13,25,28,29,34,35,36,40,45,48,50,54]
+COSTO_RIT		::[16,18,9,9,16,20,10,18,18,18,15,17,9]
+
+!Assegna i valori di inizio e fine degli slot
+forall(s in SLOT)do
+	SLOT_START(s)	:=(s-1)*6
+	SLOT_END(s)		:=(s*6)-1
+end-do
+writeln("ciaciaociao")
+forall(s in SLOT) do 
+    writeln(SLOT_END(s))
+    end-do
+!Obiettivo 1: Minimizzare il ritardo complessivo
+ObjA := sum(v in VOLI)  (arrivo_min(v)-ARRIVO_PREV(v))
+
+!Ogni volo DEVE atterrare - una sola volta -
+forall(v in VOLI) sum(s in SLOT) arrivo_slot(s,v)=1
+
+!Il minuto di arrivo effettivo deve essere maggiore al minuto di arrivo previsto
+forall(v in VOLI)   arrivo_min(v) >= ARRIVO_PREV(v) 
+
+!Il minuto di arrivo effettivo deve essere maggiore al minuto in cui inizia lo slot a cui il volo � stato assegnato
+forall(v in VOLI)   arrivo_min(v) >= sum(s in SLOT) arrivo_slot(s,v)*SLOT_START(s)
+!Il minuto di arrivo effettivo deve essere minore al minuto in cui finisce lo slot a cui il volo � stato assegnato
+forall(v in VOLI)   arrivo_min(v) <= sum(s in SLOT) arrivo_slot(s,v)*SLOT_END(s)
+
+!In ogni slot pu� atterrare al massimo un aereo
+forall(s in SLOT) sum(v in VOLI) arrivo_slot(s,v) <=1
+
+
+forall(s in SLOT, v in VOLI) arrivo_slot(s,v) is_binary
+forall(v in VOLI) arrivo_min(v) is_integer
+
+minimize(ObjA)
+write("OBIETTIVO 1: Minimizzare il ritardo complessivo\nRitardo Complessivo: ",getobjval," min con un costo comlessivo di: ", sum(v in VOLI)  (getsol(arrivo_min(v))-ARRIVO_PREV(v))*COSTO_RIT(v)," �")
+STAMPA
+!STAMPA2 !permette di stampare i risultati in ordine inverso
+
+write("\n--------------------------------------------------------")
+
+!Obiettivo 2: Minimizzare il costo complessivo
+ObjB := sum(v in VOLI)  (arrivo_min(v)-ARRIVO_PREV(v))*COSTO_RIT(v)
+minimize(ObjB)
+write("\n\nOBIETTIVO 2: Minimizzare il costo complessivo\nCosto Complessivo: ",getobjval," � con un ritardo comlessivo di: ", sum(v in VOLI)  (getsol(arrivo_min(v))-ARRIVO_PREV(v)) ," min")
+STAMPA
+!STAMPA2 !permette di stampare i risultati in ordine inverso
+
+
+
+!-- PROCEDURE DI STAMPA --
+
+!STAMPA
+!Stampa una tabella in cui le righe indicano gli SLOT e le colonne rappresentano i VOLI
+procedure STAMPA
+	
+	write("\nVOLO    ")		
+	forall(v in VOLI) write(strfmt(v,3))
+	      
+	forall(s in SLOT, v in VOLI) do
+		if( v=1 ) then
+			write("\nSLOT",strfmt(s,2), ": ")		
+		end-if
+		
+		write(strfmt(getsol(arrivo_slot(s,v)),3))
+		if( v=13 ) then
+			write("  -->Assegnato al volo ",if (sum(v1 in VOLI) getsol(arrivo_slot(s,v1))*v1 =0,"NON ASSEGNATO",strfmt(sum(v1 in VOLI) getsol(arrivo_slot(s,v1))*v1 ,2)))		
+		end-if
+	end-do
+	!minuto di arrivo stimato
+	write("\n\nEFF.    ")
+	forall(v in VOLI)do
+	write(strfmt(getsol(arrivo_min(v)),3))
+	end-do
+	
+	!minuto di arrivo previsto
+	write("\nPREV    ")
+	forall(v in VOLI)do
+	write(strfmt(ARRIVO_PREV(v),3))   
+	end-do
+	
+	!minuti di ritardo
+	write("\nRIT     ")
+	forall(v in VOLI)do
+	write(strfmt(getsol(arrivo_min(v))-ARRIVO_PREV(v),3))   
+	end-do
+
+	write("\n\n")
+end-procedure
+
+!STAMPA2
+!Stampa una tabella in cui le righe indicano i VOLI e le colonne rappresentano gli SLOT
+
+procedure STAMPA2
+	write("\nSLOT    ")		
+	forall(s in SLOT) write(strfmt(s,3))
+	      
+	forall(v in VOLI, s in SLOT) do
+		if( s=1 ) then
+			write("\nVOLO",strfmt(v,2), ": ")		
+		end-if
+	
+		write(strfmt(getsol(arrivo_slot(s,v)),3))
+		if( s=15 ) then
+			write(strfmt(v,3)," Arr.eff: ",strfmt(getsol(arrivo_min(v)),3)," Prev:",strfmt(ARRIVO_PREV(v),3)," Rit:", getsol(arrivo_min(v))-ARRIVO_PREV(v))
+		end-if
+	end-do
+end-procedure
+
+end-model

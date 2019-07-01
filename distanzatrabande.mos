@@ -1,0 +1,68 @@
+model ModelName
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+!sample declarations section
+declarations
+ staz = 1..10
+ freq = 1..6
+
+ diff: array(staz,staz) of integer
+ l:integer
+ r:integer
+ x: array(staz,freq) of mpvar
+ y: array(freq) of mpvar
+	res:linctr
+end-declarations
+
+diff::[0, 1, 0, 0, 0, 0, 0, 2, 0, 0,
+	0, 0, 2, 0, 2, 0, 0, 0, 0, 1,
+	0, 0, 0, 4, 0, 0, 0, 0, 0, 1,
+	0, 0, 0, 0, 2, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 3, 0, 0, 0, 4,
+	0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 1, 0, 2,
+	0, 0, 0, 0, 0, 0, 0, 0, 2, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+
+forall(i in staz, k in freq) x(i,k) is_binary
+forall(k in freq) y(k) is_binary
+
+forall(i in staz) sum(k in freq) x(i,k) = 1
+forall(i in staz, k in freq) x(i,k) <= y(k)
+
+forall(i,j in staz | diff(i,j)>0,k in freq) do
+	l := maxlist(1,k-diff(i,j)+1)  ! se la frequenza che considero è minore della differenza richiesta,prendo 1
+	r := minlist(6,k+diff(i,j)-1) !se la frequnza che considero è maggiore della differenza richiesta,prendo 6
+	x(i,k)+ sum(t in l..r) x(j,t) <= 1
+end-do
+
+
+
+res := sum(k in freq) y(k)
+
+minimize(res)
+
+forall(i in staz, k in freq) do
+if getsol(x(i,k)) > 0 then
+	writeln("la stazione ",i," è stata assegnata alla frequenza ",k)
+end-if
+end-do
+
+writeln("Obj=",getobjval)
+
+
+writeln("End running model")
+
+end-model
+
+forall(i,j in nodes | c(i,j)>0,k in freq) do
+	if(k-c(i,j)+1<1) then
+		x(i,k) + sum(t in 1..k+c(i,j))x(t,k)<=1
+	elif(k+c(i,j)>6) then
+		x(i,k) + sum(t in k-c(i,j)+1..6)x(t,k)<=1
+	elif(k>c(i,j) and k+c(i,j)<=6) then
+		x(i,k) + sum(t in k-c(i,j)+1..k+c(i,j)-1)x(t,k)<=1
+	end-if
+end-do

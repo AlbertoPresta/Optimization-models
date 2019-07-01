@@ -1,0 +1,85 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  
+  
+ declarations
+ TOT = 58
+ mag = 1..6
+ ab = 1..8
+ pop :array(ab) of integer
+ costo : array(mag) of real 
+ services : array(mag,ab) of integer
+ c : linctr
+ d : linctr
+ x : array(mag) of mpvar ! 1 se il magazzino è messo mella posizione i
+ y : array(ab) of mpvar ! 1 se magazzino i serve posizione j 
+ cc : linctr
+ end-declarations
+ 
+ pop :: [2,4,13,6,9,4,8,12]
+ costo :: [1.8,1.3,4.0,3.5,3.8,2.6]
+ services :: [1,1,0,1,0,0,0,0,
+              0,1,1,0,1,0,0,0,
+              0,0,0,1,0,0,1,1,
+              0,0,0,0,1,1,0,1,
+              0,0,0,0,0,0,0,1,
+              0,0,0,0,0,0,1,0]
+forall(i in mag) x(i) is_binary
+forall(i in mag,j in ab) y(j) is_binary
+
+!vincolo sul costo massimo
+sum(i in mag)costo(i)*x(i)<=7
+
+!vincolo dell'80%
+c:= sum(j in ab) y(j)*pop(j)>=TOT*0.8
+
+!se un sito viene costruito allora deve servire!
+forall(i in ab) sum(j in mag) x(j)*services(j,i)>=y(i) 
+
+cc := sum(i in mag)costo(i)*x(i)
+
+minimise(cc)
+
+writeln("sol:   ",getobjval)
+writeln("ecco i siti dove vengono costruiti i magazzini: ")
+forall(i in mag) do 
+    if(getsol(x(i))>0) then 
+        writeln("sito: ",i)
+        end-if
+        end-do
+writeln("**********************PUNTO 2******************")
+sethidden(c,true)
+d :=sum(j in ab) y(j)*pop(j)>=TOT*0.9
+minimise(cc)
+if (getprobstat=XPRS_INF) then
+        writeln("con il 90% il problema è infeasible! cerchiamo quindi di massimizzare la popolazione")
+        end-if
+
+writeln("******************PUNTO 3************************")
+
+sethidden(d,true)
+
+declarations
+popolazione : linctr
+end-declarations
+
+popolazione := sum(i in ab)y(i)*pop(i)
+maximise(popolazione)
+writeln("popolazione massimizzata:  ",getobjval)
+writeln("ecco i siti dove vengono costruiti i magazzini: ")
+forall(i in mag) do 
+    if(getsol(x(i))>0) then 
+        writeln("sito: ",i)
+        end-if
+        end-do
+
+end-model
+
+
+
+
+
+
+
+!vincolo sul costo 

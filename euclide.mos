@@ -1,0 +1,54 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    new = 1..15
+    old = 1..7
+
+    x_old : array(old) of integer
+    y_old : array(old) of integer
+    x_new : array(new) of integer
+    y_new : array(new) of integer
+    d : array(old,new) of real
+    pesi: array(old) of integer
+    x : array(old,new) of mpvar !x(i,j)= numero di mecchine i che vanno fino a j
+    y : array(new) of mpvar !y(j)=1 se utilizzo posto j
+    dist:linctr
+  end-declarations
+  pesi :: [10,7,8,12,3,6,11]
+  x_old :: [2,2,2,9,9,9,9]
+  y_old :: [5,9,13,3,7,11,15]
+  forall(i in new) do
+    x_new(i) := 5
+    end-do
+
+  y_new :: [2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+
+  forall(j in new) y(j) is_binary
+  forall(i in old,j in new) x(i,j) is_integer
+
+  forall(i in old,j in new) do
+    d(i,j) := sqrt((x_old(i)-x_new(j))^2 + (y_old(i)-y_new(j))^2)
+    end-do
+  
+  sum(i in new)y(i)=4
+  forall(j in new) sum(i in old)x(i,j)<=1000*y(j) ! se non metto nulla non può arrivar nulla
+  forall(i in old) sum(j in new)x(i,j)=pesi(i) ! tutte le macchine devono arrivare
+  
+  dist := sum(i in old,j in new)d(i,j)*x(i,j)
+  
+  minimise(dist)
+  writeln("sol: ",getobjval)
+  forall(i in new) do 
+    if(getsol(y(i))>0) then 
+      writeln("postazione: ( 5,",i,")")
+      end-if
+  end-do
+
+
+
+
+
+end-model

@@ -1,0 +1,90 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+  pox_cp = 1..28
+    pilots = 1..8
+    type = 1..5
+    language = 1..4
+
+    language_mark:array(pilots,language) of integer
+    type_marks:array(pilots,type) of integer
+    pox_coppie:array(pox_cp,pilots) of integer
+    x:array(pox_cp) of mpvar !x(i)=1 se la coppia i è stata scelta
+    couple:linctr
+  end-declarations
+
+  language_mark::[20,12,0,0,
+                  14,0,20,0,
+                  0,0,12,0,
+                  13,10,0,0,
+                  0,15,8,17,
+                  0,20,11,0,
+                  8,8,14,0,
+                  8,9,12,16]
+  type_marks::[18,10,0,0,0,
+              12,0,17,0,0,
+              15,9,0,14,0,
+              0,14,11,0,0,
+              0,15,12,0,12,
+              0,8,10,12,18,
+              8,12,0,16,0,
+              0,13,0,0,18]
+
+  pox_coppie::[1,1,0,0,0,0,0,0,
+               1,0,1,0,0,0,0,0,
+               1,0,0,1,0,0,0,0,
+               1,0,0,0,1,0,0,0,
+               1,0,0,0,0,1,0,0,
+               1,0,0,0,0,0,1,0,
+               1,0,0,0,0,0,0,1,
+               0,1,1,0,0,0,0,0,
+               0,1,0,1,0,0,0,0,
+               0,1,0,0,1,0,0,0,
+               0,1,0,0,0,1,0,0,
+               0,1,0,0,0,0,1,0,
+               0,1,0,0,0,0,0,1,
+               0,0,1,1,0,0,0,0,
+               0,0,1,0,1,0,0,0,
+               0,0,1,0,0,1,0,0,
+               0,0,1,0,0,0,1,0,
+               0,0,1,0,0,0,0,1,
+               0,0,0,1,1,0,0,0,
+               0,0,0,1,0,1,0,0,
+               0,0,0,1,0,0,1,0,
+               0,0,0,1,0,0,0,1,
+               0,0,0,0,1,1,0,0,
+               0,0,0,0,1,0,1,0,
+               0,0,0,0,1,0,0,1,
+               0,0,0,0,0,1,1,0,
+               0,0,0,0,0,1,0,1,
+               0,0,0,0,0,0,1,0]
+
+  forall(i,j in pilots | i<j) x(i,j) is_binary
+
+  !un pilota è assegnato solo ed esclusimante ad un altro
+  forall(i in pilots) do
+    sum(j in pilots |i<j)x(i,j) <= 1
+    sum(j in pilots |i<j)x(j,j) <= 1
+  end-do
+
+  !mettiamo le condizioni
+  forall(i,j in pilots | i<j,k in type,l in language) do
+    if(language_mark(i,l)<10 or language_mark(j,l)<10 or type_marks(i,k)<10 or type_marks(j,k)<10) then
+      x(i,j)=0
+    end-if
+  end-do
+
+  couple:=sum(i,j in pilots |i<j)x(i,j)
+
+  maximise(couple)
+  writeln(getobjval)
+
+
+
+
+
+
+end-model

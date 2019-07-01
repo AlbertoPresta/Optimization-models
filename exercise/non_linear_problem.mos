@@ -1,0 +1,40 @@
+model ModelName
+  
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    LIQ = 1..10
+    CONT = 1..3
+    vinc: array(CONT) of linctr
+    peso : array(LIQ) of integer
+    cap : array(CONT) of integer 
+    util : array(CONT) of real 
+    cost : array(CONT) of integer 
+    q : mpvar ! variabile che serve per linearizzare il problema 
+    
+    y : array(LIQ,CONT) of mpvar ! linearizzazione della x 
+    funzione:linctr
+  end-declarations
+
+  peso :: [12,31,45,22,9,26,18,10,33,28]
+  cap :: [70,80,80]
+  util :: [0.3,0.2,0.5]
+  cost :: [5,4,3]
+  
+  sum(i in LIQ, j in CONT) y(i,j)*cost(j) = 1
+  
+  forall(i in LIQ) sum(j in CONT) y(i,j) = q
+  !limite sul peso 
+  forall(j in CONT)vinc(j):= sum(i in LIQ) y(i,j)*peso(i)<=q*cap(j)
+  !constraints derivata dalla linearizzazione
+  
+  funzione:=sum(i in LIQ,j in CONT)y(i,j)*util(j)
+  maximise(funzione)
+  
+  
+  
+  
+  
+  
+end-model

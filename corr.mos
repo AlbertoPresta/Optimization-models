@@ -1,0 +1,85 @@
+model ModelName
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+!sample declarations section
+declarations
+  alcolici = 1..6
+  cocktail = 1..5 
+  
+  A: array(alcolici, cocktail) of real
+  disp: array(alcolici) of real
+  x: array(cocktail) of mpvar
+  
+  vinc: array(alcolici) of linctr
+  Objective:linctr
+end-declarations
+
+disp::[1.2, 1.8, 1.6, 1.8, 0.6, 0.5]
+
+A::[2/3, 0, 0, 0, 1,
+	0, 3/4, 0, 2/3, 0,
+	0, 0, 1/4, 1/3, 0,
+	1/3, 0, 1/4, 0, 0,
+	0, 0, 1/2, 0, 0,
+	0, 1/4, 0, 0, 0]
+
+forall(j in cocktail) x(j) is_integer
+
+writeln("******* Punto A *******")
+
+forall(i in alcolici) vinc(i) := sum(j in cocktail) A(i,j)*x(j)*0.1 <= disp(i)
+
+2*x(2) - x(4) <= 0
+
+numcocktail := sum(j in cocktail) x(j)
+
+maximize(numcocktail)
+
+writeln("obj1: ", getobjval)
+forall(j in cocktail) writeln("cocktail ",j,": ",getsol(x(j)))
+forall(i in alcolici) writeln("avanzo ", i,": ",getslack(vinc(i)))
+
+writeln("******* Punto B *******")
+forall(i in alcolici) do
+	avanzo(i) := getslack(vinc(i))
+end-do
+
+declarations
+	c: array(alcolici) of integer
+	y: array(alcolici) of mpvar
+end-declarations
+
+c::[7, 2, 8, 6, 5, 4]
+
+V := sum(i in alcolici) c(i)*avanzo(i)
+
+writeln("V: ", V)
+
+sum(i in alcolici) c(i)*y(i) = V
+
+forall(i in alcolici) vinc(i) := sum(j in cocktail) A(i,j)*x(j)*0.1 <= disp(i) + y(i)
+
+maximise(numcocktail)
+
+writeln("obj2: ", getobjval)
+forall(j in cocktail) writeln("cocktail ",j,": ",getsol(x(j)))
+forall(i in alcolici) writeln("avanzo ", i,": ",getslack(vinc(i)))
+
+writeln("******* Punto C *******")
+
+declarations
+	z: array(alcolici) of mpvar
+end-declarations
+
+forall(i in alcolici) vinc(i) := sum(j in cocktail) A(i,j)*x(j)*0.1 + z(i)= disp(i) + y(i)
+
+residuo := sum(i in alcolici) z(i)
+
+minimize(residuo)
+
+writeln("obj3: ", getobjval)
+forall(j in cocktail) writeln("cocktail ",j,": ",getsol(x(j)))
+forall(i in alcolici) writeln("avanzo ", i,": ",getsol(z(i)))
+
+
+end-model

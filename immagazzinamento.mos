@@ -1,0 +1,64 @@
+model ModelName
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+declarations
+  tipi = 1..4
+  mesi = 1..6
+  
+  CP: array(tipi) of integer
+  CS: array(tipi) of real
+  SI: array(tipi) of integer
+  SF: array(tipi) of integer
+  D: array(tipi,mesi) of integer
+   
+  x: array(tipi,mesi) of mpvar
+  s: array(tipi,mesi) of mpvar
+end-declarations
+
+CP::[20, 25, 10, 15]
+CS::[0.4, 0.5, 0.3, 0.3]
+
+SI::[10, 0, 50, 0]
+SF::[50, 10, 30, 10]
+
+D::[1500, 3000, 2000, 4000, 2000, 2500,
+	1300,  800,  800, 1000, 1100,  900,
+	2200, 1500, 2900, 1800, 1200, 2100,
+	1400, 1600, 1500, 1000, 1100, 1200]
+
+forall(i in tipi, j in mesi) do
+	x(i,j) is_integer
+	s(i,j) is_integer
+end-do
+
+forall(i in tipi, j in mesi) x(i,j) + if(j>1,s(i,j-1),SI(i)) = D(i,j) + s(i,j)	
+
+forall(i in tipi) s(i,6) >= SF(i)
+
+costo := sum(i in tipi)(CP(i)*sum(j in mesi) x(i,j)  + CS(i)*sum(j in mesi) s(i,j))
+
+minimize(costo)
+
+writeln("Soluzione1: ",getobjval)
+
+declarations
+	y,z: array(mesi) of mpvar
+end-declarations
+
+forall(j in mesi) do
+	y(j) is_integer
+	z(j) is_integer
+end-do
+
+forall(j in 2..6) do
+	sum(i in tipi) (x(i,j) - x(i,j-1)) = y(j) - z(j)
+end-do
+
+Cinc := 1
+Cdec := 0.5
+costoVar := sum(j in 2..6)(Cinc*y(j) + Cdec*z(j))
+
+minimize(costo+costoVar)
+writeln("Soluzione2: ",getobjval)
+
+end-model

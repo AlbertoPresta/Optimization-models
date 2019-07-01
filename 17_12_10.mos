@@ -1,0 +1,117 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    siti = 1..10
+    rif = 1..5
+    A : array(rif,rif,siti) of integer
+    x : array(rif,rif) of mpvar
+    vinc : linctr
+    Objective:linctr
+  end-declarations
+
+  A(1,2,1):=1
+  A(1,2,5):=1
+  A(1,3,1):=1
+  A(1,3,2):=1
+  A(1,3,7):=1
+  A(1,3,10):=1
+  A(1,4,4):=1
+  A(1,4,9):=1
+  A(1,5,4):=1
+  A(1,5,10):=1
+  A(2,3,2):=1
+  A(2,3,8):=1
+  A(2,4,3):=1
+  A(2,4,7):=1
+  A(2,4,8):=1
+  A(2,5,5):=1
+  A(2,5,7):=1
+  A(3,4,6):=1
+  A(3,4,9):=1
+  A(3,5,3):=1
+  A(3,5,6):=1
+  A(4,5,3):=1
+  A(4,5,4):=1
+  A(4,5,9):=1
+
+forall(i in rif , j in rif ) x(i,j) is_binary
+forall(i in rif , j in rif ) x(i,j)=x(j,i)
+forall(i in rif)x(i,i)=0
+
+! per ogni sito devo raggiungerlo
+forall(k in siti) sum(i in rif,j in rif | i<j)x(i,j)*A(i,j,k) >=1
+Objective := sum(i in rif,j in rif | i<j) x(i,j)
+minimise(Objective)
+
+writeln("ris:   ",getobjval)
+forall(i in rif,j in rif | i<j) do 
+      if(getsol(x(i,j))>0) then 
+          writeln("il rifugio ",i," è collegato al rifugio ",j,".")
+          end-if
+      end-do
+writeln("controllo")
+forall(k in siti) do 
+    forall(i in rif , j in rif | i<j) do 
+        if(getsol(x(i,j))>0 and A(i,j,k)>0) then
+          writeln("sito ",k," è stato raggionto dal sentiero (",i,",",j,").")
+          end-if
+      end-do
+      end-do
+
+writeln("**********************PUNTO B**********************")
+
+! NUMERO DI SENTIERI UGUALE A 5 
+
+vinc := sum(i in rif,j in rif | i<j) x(i,j) = 5
+
+declarations
+dist : array(rif,rif) of integer 
+nuovo : linctr
+end-declarations
+
+dist :: [0,7,12,8,3,
+        0,0,4,10,6,
+        0,0,0,5,4,
+        0,0,0,0,2]
+
+nuovo := sum(i in rif,j in rif | i<j) x(i,j)*dist(i,j)
+minimise(nuovo)
+
+writeln("distanza minima per raggiungere tutti i siti :   ",getobjval)
+forall(i in rif,j in rif | i<j) do 
+      if(getsol(x(i,j))>0) then 
+          writeln("il rifugio ",i," è collegato al rifugio ",j,".")
+          end-if
+      end-do
+writeln("controllo")
+forall(k in siti) do 
+    forall(i in rif , j in rif | i<j) do 
+        if(getsol(x(i,j))>0 and A(i,j,k)>0) then
+          writeln("sito ",k," è stato raggionto dal sentiero (",i,",",j,").")
+          end-if
+      end-do
+      end-do
+writeln("**********************PUNTO C**********************")
+
+sethidden(vinc,true)
+minimise(nuovo)
+writeln("numero di sentieri")
+writeln("distanza minima per raggiungere tutti i siti :   ",getobjval)
+forall(i in rif,j in rif | i<j) do 
+      if(getsol(x(i,j))>0) then 
+          writeln("il rifugio ",i," è collegato al rifugio ",j,".")
+          end-if
+      end-do
+writeln("controllo")
+forall(k in siti) do 
+    forall(i in rif , j in rif | i<j) do 
+        if(getsol(x(i,j))>0 and A(i,j,k)>0) then
+          writeln("sito ",k," è stato raggionto dal sentiero (",i,",",j,").")
+          end-if
+      end-do
+      end-do
+
+end-model

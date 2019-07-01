@@ -1,0 +1,119 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+  declarations
+  RAW = 1..5
+  COL = 1..6
+
+  DISP : array(COL) of real ! list of available quantity of material to mae drinks
+  DRINKS : array(RAW) of string  ! list of drinks
+  ELEMENTS : array(COL) of string
+  P : array(RAW,COL) of real ! matrix of component for drinks
+  x : array(RAW) of mpvar
+  vinc : array(COL) of linctr
+  number: linctr
+end-declarations
+
+P :: [ 2/3,0,0,1/3,0,0,
+      0,3/4,0,0,0,1/4,
+      0,0,1/4,1/4,1/2,0,
+      0,2/3,1/3,0,0,0,
+      1,0,0,0,0,0]
+      
+DRINKS :: ["Chaunky","Black Russian","Sweet Italian","Molotov Cocktail","Whisky on the rocks"]
+ELEMENTS :: ["Whisky","vodka","martini bianco","martini rosso","cognac","liquore caffè"]
+DISP :: [1.2,1.8,1.6,1.8,0.6,0.5]
+
+! objective function: sum of all drinks produces in a night
+number := sum(r in RAW) x(r) 
+writeln("********************PUNTO A********************")
+! constraints
+2*x(2) - x(4)<=0 ! molotov cocktail has to be at least twice the time of black russian 
+
+
+forall(c in COL) do
+   vinc(c):= sum (i in RAW) x(i)*P(i,c)*0.1 <= DISP(c) ! every drink contains 0.1 of liquid
+  end-do
+ 
+forall(c in RAW) x(c) is_integer  
+maximise(number)
+
+!PRINT THE SOLUTION
+
+writeln("solution of point A problem")
+writeln("obj1: ", getobjval)
+forall(i in RAW) do 
+    writeln(DRINKS(i)," : ",getsol(x(i)))
+  end-do
+
+!writeln("prodotto utilizzato: ")  
+!forall(i in COL) do
+!  writeln(ELEMENTS(i)," : ", getslack(vinc(i)))
+ ! end-do
+
+
+writeln("********************POINT B********************")
+
+declarations
+avanzi : array(COL) of real
+prezzi : array(COL) of integer
+budget : real
+y : array(COL) of mpvar 
+end-declarations
+
+prezzi :: [7,2,8,6,5,4]
+! salviamo gli avanzi in un vettore di lunghezza COL 
+forall(i in COL) do
+    avanzi(i) := getslack(vinc(i))
+  end-do
+  
+! calcoliamo il nostro budget
+budget := sum (i in COL) prezzi(i)*avanzi(i)
+ !ora bisogna massimizzare la quantità di alcolici da aquistare per massimizzare  la vendita -->puntare su quelli più ve
+ ! venduti
+ ! devo aggiungere delle variabili y(i) che rappresentano gli alcolici acquistati --> somma deve essere <=budget
+ ! ora devo imporre che la somma dei miei acquisti sia esattamente il mio budget
+ 
+ sum(i in COL) prezzi(i)*y(i) = budget
+ 
+ 
+ forall(c in COL) do
+   vinc(c):= sum (i in RAW) x(i)*P(i,c)*0.1 <= DISP(c) + y(c) ! every drink contains 0.1 of liquid
+  end-do
+maximise(number) 
+ 
+!printing second solution
+
+writeln("objvalue: ",getobjval)
+forall(i in RAW) do 
+    writeln(DRINKS(i)," : ",getsol(x(i)))
+  end-do
+
+writeln("********************PUNTO C********************")
+
+declarations
+
+Min : array(COL) of mpvar ! variabile che rappresenta quantità di alcolici 
+
+last : linctr
+end-declarations
+
+
+ 
+ forall(c in COL) do
+   vinc(c):= sum (i in RAW) x(i)*P(i,c)*0.1  + Min(c) = DISP(c) + y(c) ! every drink contains 0.1 of liquid
+  end-do
+last := sum(i in COL) Min(i)
+ 
+minimise(last)
+
+!printing third solution
+
+
+writeln("obj3: ", getobjval)
+forall(j in RAW) writeln("cocktail ",j,": ",getsol(x(j)))
+forall(i in COL) writeln("avanzo ", i,": ",getsol(Min(i)))
+
+end-model
+

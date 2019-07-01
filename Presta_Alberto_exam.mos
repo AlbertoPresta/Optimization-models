@@ -1,0 +1,77 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+
+declarations
+staz = 1..4
+ore = 1..4
+
+domanda: array(staz,ore) of integer 
+depositi : array(staz,ore) of integer 
+
+x : array(staz,ore) of mpvar  !x(i,j) numero di bici presenti alla stazione i all'ora j 
+y : array(staz,ore) of mpvar  !y(i,j) = 1 se utilizzo il camion all stazione i all'ora j 
+t : array(staz,ore) of mpvar !t(i,j) numero di bici che camion PRENDE dalla stazione i al tempo j 
+q : array(staz,ore) of mpvar !q(i,j) numero di bici che camion DEPOSITA alla stazione i al tempo j
+bici : linctr
+end-declarations
+
+domanda :: [3,8,3,6,
+            2,4,1,5,
+            5,7,8,3,
+            3,7,4,3]
+
+depositi :: [5,6,4,1,
+            2,7,3,3,
+            3,5,2,6,
+            8,3,1,4]
+
+!impongo il tipo di variabile 
+forall(i in staz,j in ore) do 
+    x(i,j) is_integer
+    y(i,j) is_binary
+    t(i,j) is_integer
+    q(i,j) is_integer
+    end-do 
+
+forall( i in staz) x(i,1)=6 !condizioni iniziali 
+
+! posso usare il furgone solo in una stazione per ogni ora
+forall(i in staz) do 
+    sum(j in ore) y(i,j)<=1
+    end-do 
+    
+! se non ho il furgone non posso usarlo 
+forall(i in staz,j in ore) do 
+  q(i,j)<=10*y(i,j)
+  t(i,j)<=10*y(i,j)
+  end-do 
+
+! devo imporre che il numero di bici sia sempre giusto
+forall(i in staz,j in ore) do 
+  x(i,j) - t(i,j) + q(i,j) -domanda(i,j) +depositi(i,j)>=0
+  x(i,j) - t(i,j) + q(i,j) -domanda(i,j) +depositi(i,j)<=10
+  end-do 
+  
+! determino il numero di bici ogni ora 
+forall(i in staz,j in 2..4) do 
+  x(i,j)=x(i,j-1) - t(i,j-1) + q(i,j-1) -domanda(i,j-1) + depositi(i,j-1)
+  x(i,j)=x(i,j-1) - t(i,j-1) + q(i,j-1) -domanda(i,j-1) + depositi(i,j-1)
+  end-do
+  
+bici:= sum(i in staz,j in ore) (t(i,j) + q(i,j))
+
+minimise(bici)
+writeln("sol:  ",getobjval)
+
+
+
+
+
+
+
+
+
+ 
+
+end-model

@@ -1,0 +1,55 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    index = 1..15 ! al massimo 15 scaffali
+    larg : array(index) of integer
+    alt : array(index) of integer
+    x : array(index,index) of mpvar ! 1 se il libro i lo ripongo sullo scaffale j
+    y : array(index) of mpvar ! altezza scaffale i
+    altezza : linctr
+  end-declarations
+
+setparam("XPRS_VERBOSE",true)
+setparam("XPRS_MAXTIME",120)
+
+  larg :: [10,22,20,5,8,7,15,11,9,10,7,9,12,5,6]
+  alt :: [2,10,10,10,8,12,18,9,15,13,8,7,7,10,5]
+  forall(i,j in index) x(i,j) is_binary
+  forall(i in index) y(i) is_integer
+
+  forall(j in index) sum(i in index) x(i,j)*larg(i) <= 26  ! la larghezza della libreria è 26
+
+  ! per ogni scaffale j  y(j) deve essere maggiore di tutti i libri i  che sono riposti su questo scaffale
+  forall(libro in index,scaffale in index) do
+      x(libro,scaffale)*alt(libro) <=y(scaffale)
+      end-do
+
+  ! tutti i libri devono essere riposti
+  forall(libro in index) sum(scaffali in index) x(libro,scaffali) = 1
+  
+  altezza := sum(i in index) y(i)
+
+ minimise(altezza)
+ writeln("costo:  ",getobjval)
+ forall(i in index) do 
+    writeln("altezza di ",i," :",getsol(y(i)))
+    end-do
+    
+writeln("come sono divisi i libri")
+forall(i in index) do 
+    if(getsol(y(i))>0) then
+      forall(j in index) do
+          if(getsol(x(j,i))>0) then
+            writeln("il libro ",j," è stato riposto nello scaffale ",i,".")
+            end-if
+        
+        end-do
+      writeln("       ")
+    end-if
+  end-do
+  
+
+end-model

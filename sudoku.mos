@@ -1,0 +1,93 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+ 
+    N = 1..9 ! usefull to create a matrix
+    x: array(N,N,N) of mpvar ! aarray of our constraints
+    sud:linctr
+   
+  end-declarations
+  
+ 
+  
+  writeln("Begin running model")
+  !ogni casella deve essere assegnato un numero e uno solo !
+  forall(i,j in N) do 
+    sum(k in N) x(i,j,k)=1
+    end-do
+  ! numeri diversi sulle righe
+  forall(i,k in N) do
+    sum(j in N) x(i,j,k)=1
+    end-do
+  !numeri diversi sulle colonne
+  
+  forall(j,k in N) do 
+  sum(i in N ) x(i,j,k)=1
+  end-do
+  
+  !ora ci servono i quadratini
+  forall(k in N) do
+    sum(i in 1..3,j in 1..3) x(i,j,k) = 1
+    sum(i in 1..3,j in 4..6) x(i,j,k) = 1
+    sum(i in 1..3,j in 7..9) x(i,j,k) = 1
+    sum(i in 4..6,j in 1..3) x(i,j,k) = 1
+    sum(i in 4..6,j in 4..6) x(i,j,k) = 1
+    sum(i in 4..6,j in 7..9) x(i,j,k) = 1
+    sum(i in 7..9,j in 1..3) x(i,j,k) = 1
+    sum(i in 7..9,j in 4..6) x(i,j,k) = 1
+    sum(i in 7..9,j in 7..9) x(i,j,k) = 1
+  end-do
+  
+  
+  
+  
+  
+  
+ x(1,1,8)=1
+x(2,1,3)=1
+x(3,1,4)=1
+x(6,1,2)=1
+x(8,1,1)=1
+x(5,2,4)=1
+x(2,3,7)=1
+x(5,3,3)=1
+x(2,4,8)=1
+x(4,4,3)=1
+x(6,4,7)=1
+x(7,4,5)=1
+x(9,4,6)=1
+x(3,5,7)=1
+x(4,5,5)=1
+x(1,6,5)=1
+x(5,6,8)=1
+x(6,6,4)=1
+x(7,7,4)=1
+x(4,8,6)=1
+x(5,8,1)=1
+x(8,8,3)=1
+x(3,9,1)=1
+x(6,9,8)=1
+x(7,9,7)=1
+
+  
+  
+  sud:=1
+  
+  
+  maximise(sud)
+      
+      
+  forall(i,j,k in N) do 
+    if getsol(x(i,j,k))>0  then    
+  writeln("x(",i,",",j,",",k,") = " ,getsol(x(i,j,k))) 
+  end-if
+  end-do 
+      
+
+ 
+  
+  writeln("End running model")
+end-model

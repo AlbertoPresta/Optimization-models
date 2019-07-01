@@ -1,0 +1,96 @@
+model cancer_optimization
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+  organi = 1..7
+  pos = 1..5
+    perc : array(pos) of real
+    A : array(organi,pos) of real 
+    org_max : array(organi) of real 
+    pos_max : array(pos) of integer
+    x : array(pos) of mpvar
+    
+    vinc : array(organi) of linctr
+    pos_vinc : array(pos) of linctr
+    radiation:linctr
+  end-declarations
+
+
+
+!initialisations
+perc :: [0.4,0.3,0.25,0.7,0.5]
+A :: [ 0.1,0,0,0.1,0.2,
+      0.1,0,0.15,0,0.1,
+      0,0.1,0,0,0,
+      0,0.2,0.1,0.1,0,
+      0.1,0,0.2,0,0.1,
+      0.1,0.3,0.15,0.1,0.1,
+      0.2,0.1,0.15,0,0 ]
+
+org_max :: [5.5,9.0,6.0,2.4,7.0,5.5,9.5]
+pos_max :: [12,13,10,15,15]
+
+! introduciamo le nostre constraints
+! constraints sulle posizioni
+sum(i in pos) x(i)<=60
+x(1)<=12
+x(2)<=13
+ x(3)<=10
+ x(4)<=15
+x(5)<=15
+
+!constraints sugli organi
+forall(i in organi) do 
+    vinc(i) := sum(j in pos) A(i,j)*x(j) <= org_max(i)
+    end-do
+
+
+
+radiation := sum(i in pos) perc(i)*x(i)
+
+forall(i in pos) do
+  x(i) is_integer
+  end-do
+
+maximise(radiation)
+
+!write our solution
+writeln("our total radiation is: ",getobjval)
+
+writeln("quantità di radiazioni per ogni posizione:  ")
+forall(i in pos) do 
+    writeln("posizione ",i," : ",getsol(x(i)))
+    end-do
+
+writeln("******************PUNTO B**********************")
+
+declarations
+y : array(organi) of mpvar
+end-declarations
+
+forall(i in organi) do 
+    y(i) is_binary
+    end-do
+    
+sum(i in organi) y(i) = 6 ! solo una cosa deve essere esclusa
+
+forall(i in organi) do 
+    vinc(i) := sum(j in pos) A(i,j)*x(j) <= org_max(i) + 60*(1-y(1))
+    end-do
+
+maximise(radiation)
+writeln("our total radiation is: ",getobjval)
+
+writeln("quantità di radiazioni per ogni posizione:  ")
+forall(i in pos) do 
+    writeln("posizione ",i," : ",getsol(x(i)))
+    end-do
+    
+writeln("variabile y: ")
+forall(i in organi) do 
+  writeln("org",i," :",getsol(y(i)))
+ end-do
+end-model
+

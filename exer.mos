@@ -1,0 +1,44 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+   SL = 1..9
+   MAT = 1..9
+   A : array(MAT,SL) of integer
+   x : array(MAT,SL) of mpvar
+   y : array(SL) of mpvar
+
+    slot:linctr
+  end-declarations
+
+A :: [0,1,1,1,0,0,1,0,0,
+      1,0,0,0,0,0,0,0,1,
+      1,0,0,1,0,1,1,1,0,
+      1,0,1,0,0,1,0,0,1,
+      0,0,0,0,0,1,1,0,1,
+      0,0,1,1,1,0,1,1,1,
+      1,0,1,0,1,1,0,0,0,
+      0,0,1,0,0,1,0,0,0,
+      0,1,0,1,1,1,0,0,0]
+
+forall(i in MAT,j in SL)x(i,j) is_binary
+forall(i in SL) y(i) is_binary
+
+! tutte le materie devono essere assegnate
+forall(i in MAT) sum(j in SL)x(i,j)=1
+
+! sedue materie sono  volute dallo stesso studente allora non può finire nello stesso slot
+forall(i in MAT,j in MAT | i<j,k in SL) do
+      A(i,j)*(x(i,k) + x(j,k))<=y(j)
+      end-do
+
+
+
+slot := sum(i in SL)y(i)
+
+minimise(slot)
+
+writeln("sol    ",getobjval)
+end-model

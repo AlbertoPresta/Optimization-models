@@ -1,0 +1,48 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    liq = 1..10
+    cont = 1..3
+    pesi : array(liq) of integer
+    util : array(cont) of real
+    costo : array(cont) of integer
+    cap : array(cont) of integer
+    q : mpvar ! serve per linearizzare
+    y : array(liq,cont) of mpvar
+
+    ratio:linctr
+  end-declarations
+  cap ::[70,80,90]
+  pesi ::[12,31,45,22,9,26,18,10,33,28]
+  util ::[0.3,0.2,0.5]
+  costo ::[5,4,3]
+
+  !funzione obiettivo
+  ratio := sum(j in cont,i in liq)y(i,j)*util(j)
+
+  !constraints
+  sum(j in cont,i in liq)y(i,j)*costo(j)=1
+
+  forall(i in liq) sum(j in cont)y(i,j)=q
+
+  forall(j in cont)sum(i in liq)y(i,j)*pesi(i)<=cap(j)*q
+
+  maximise(ratio)
+
+writeln("q:  ",getsol(q))
+writeln("soluzione:  ",getobjval/getsol(q))
+  forall(j in cont) do
+    writeln(" ")
+    writeln("nel contenitore ",j," ho messo:")
+    forall(i in liq) do
+      if(getsol(y(i,j))>0) then
+        writeln(getsol(y(i,j))/getsol(q)," unità del liquido ",i)
+      end-if
+    end-do
+  end-do
+
+
+end-model

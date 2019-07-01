@@ -1,0 +1,76 @@
+model ModelName
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+parameters
+	K = 1000
+end-parameters
+
+!sample declarations section
+declarations
+  attivita = 1..20
+  durata,duratabreve,costo: array(attivita) of integer
+  prec: array(attivita,attivita) of integer
+  t,dur: array(attivita) of mpvar
+end-declarations
+
+durata::[80,20,37,28,39,18,78,96,46,34,29,27,10,8,6,12,8,10,6,0]
+duratabreve::[75,15,30,26,33,12,65,82,40,26,20,25,8,6,5,10,8,8,6,0]
+costo::[100,20,40,35,40,20,150,240,50,46,37,35,32,10,15,17,10,15,10,0]
+
+prec::[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,1,1,1,1,0,1,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,1,1,1,1,0,1,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0]
+
+forall(i,j in attivita | i > j) do
+	vinc(i,j) := t(i) - prec(i,j)*t(j) >= durata(j)
+end-do
+
+progetto := t(20) - t(1)
+
+minimize(progetto)
+
+forall(i in attivita) tardi(i) := getsol(t(i))
+
+forall(i in attivita) do
+	dur(i) <= durata(i) - duratabreve(i)
+	dur(i) is_integer
+end-do
+
+forall(i,j in attivita | i > j) do
+	sethidden(vinc(i,j), true)
+	t(i) - prec(i,j)*t(j) >= durata(j)-dur(j)
+end-do
+
+sum(i in attivita) dur(i)*costo(i) <= K
+
+
+minimize(progetto)
+
+forall(i in attivita) do
+	presto(i) := getsol(t(i))
+	writeln(tardi(i)," ",presto(i))
+end-do
+
+
+writeln("Begin running model")
+writeln(sum(i in attivita)(durata(i)-duratabreve(i))*costo(i))
+writeln("End running model")
+
+end-model

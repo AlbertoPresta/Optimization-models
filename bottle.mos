@@ -1,0 +1,57 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+  
+    P = 30000
+    ms = 1..12
+    mc = 1..2
+    ric : array(ms) of integer
+    x : array(mc,ms) of mpvar ! 1 se utilizzo la macchina i al mese j
+    z : array(mc,ms) of mpvar ! numero di bottiglie che produco nel mese j con la macchina i
+    produzione:linctr
+  end-declarations
+
+ ric :: [30,40,35,50,45,50,30,20,40,50,45,30]
+  
+  forall(i in mc,j in ms) do 
+    z(i,j) is_integer
+    x(i,j) is_binary
+    end-do
+ !soddisfare la domanda mensilmente (ci metto anche l'accumulo)
+ forall(j in ms) do
+  !sum(k in 1..j,i in mc)z(i,k)>=sum(k in 1..j)ric(k)
+  sum(i in mc )z(i,j)>=ric(j)*1000
+  end-do
+  
+  !ogni macchina deve lavorare esattamente 10 mesi l'anno 
+  
+    sum(j in ms) x(1,j) = 10
+    sum(j in ms) x(2,j) = 10
+  !se non uso la macchina allora non posso produrre bottiglie
+  forall(i in mc,j in ms) do 
+    z(i,j)<=P*x(i,j)
+    end-do
+  
+  ! luglio e agosto al massimo una macchina funzionante
+  forall(j in 7..8) do 
+  sum(i in mc) x(i,j) <=1
+  end-do 
+  
+produzione:=1
+maximise(produzione)
+forall(j in ms,i in mc) do 
+  if(getsol(x(i,j))>0) then
+    writeln("la macchina ",i," è funzionante nel mese ",j," e produce ",getsol(z(i,j)),"bottiglie")
+  end-if
+  !if(getsol(x(i,j))=0) then 
+   !  writeln("la macchina ",i," riposa nel mese  ",j)
+   !  end-if
+  end-do
+ writeln("   ") 
+forall(j in ms,i in mc) do 
+  writeln("macchina ",i," nel mese ",j,": ",getsol(x(i,j)))
+  end-do
+end-model

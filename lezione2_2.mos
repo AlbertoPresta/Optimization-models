@@ -1,0 +1,92 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+!procedure
+forward procedure print_sol(num:integer)
+
+
+  declarations
+    CL= 1..7 !sequence of integer number from 1 to 7
+
+    size: array(CL) of integer
+    price: array (CL) of integer
+    cost: array(CL) of integer
+
+    prof: array(CL) of integer
+
+    !size,prize,cost: array(CL) of integer  !to make think shorter
+
+    x: array(CL) of mpvar
+
+    profit:linctr
+  end-declarations
+    size::[10,8,6,9,15,10,12]
+    price::[1000,600,600,800,1200,800,1100]
+    cost::[80,70,85,80,73,70,80]
+
+  writeln("Begin running model")
+
+  sum (c in CL) size(c)*x(c) <= 1427 ! capacity of the barge
+  
+  forall(c in CL) do
+  prof(c) :=price(c) - size(c)*cost(c)
+  writeln("profit from lot ",c," = ", prof(c))
+  end-do
+
+  profit:=sum(c in CL) prof(c)*x(c) !maximization of the profit
+
+  maximize(profit)
+  print_sol(1)
+  
+
+ 
+  declarations
+  avail: array(CL) of integer
+  availconstr: array(CL) of linctr ! give a name of constraints
+  end-declarations
+
+  avail::[12,31,20,25,50,40,60]
+
+  forall(c in CL) availconstr(c) := x(c)<=avail(c)
+
+  maximize(profit)
+  print_sol(2)
+
+
+  forall(c in CL) x(c) is_integer
+
+  maximize(profit)
+  print_sol(3)
+
+  
+! what if I want to resolve another problem? I should remove something
+
+! const 1 yes
+! const 2 no
+! const 3 yes
+! maximize
+! const 4 yes
+
+!now maximize with 1 2 4 
+
+! we have to give a name to the contstraints
+  
+forall(c in CL) sethidden(availconstr(c),TRUE)  ! do not consider constrains saved in availconstr
+maximize(profit)  ! only integer and capacity, not availability 
+  print_sol(4)
+  
+procedure print_sol(num:integer)
+  writeln("Problem ",num," profit = ",getobjval)
+  
+  forall(c in CL) do
+  writeln(if(getsol(x(c))>0," " + c + " = " + getsol(x(c)), "" )) 
+   end-do
+  
+  !forall(c in CL) writeln(c,"=",getsol(x(c)))
+end-procedure
+
+writeln("End running model")
+
+end-model

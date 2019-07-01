@@ -1,0 +1,67 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    str = 1..10
+    lung : array(str) of integer
+    cf : array(str) of integer
+    sol : array(str) of integer
+    x : array(str) of mpvar
+    costi: array(str) of linctr
+  end-declarations
+lung :: [7,6,4,9,3,2,1,8,5,10]
+cf :: [10,3,9,16,8,14,7,2,6,50]
+
+forall(i in str) x(i) is_integer
+x(10) = 0
+
+forall(i in 1..9) lung(i)*x(i) + cf(i) <= 49
+
+forall(i in str) do
+      costi(i):=lung(i)*x(i) + cf(i)
+      end-do
+forall(i in str) do
+      maximize(costi(i))
+      !writeln("costo di ",i,": ",getobjval)
+      writeln("pedaggio: ",getsol(x(i)))
+      end-do
+!scrivo a mano i pedaggi che sono venuti fuori e i costi totali (se servono non lo so )
+
+declarations
+pedaggi : array(str) of integer
+ct :  array(str) of integer
+end-declarations
+
+ct :: [45,45,49,43,47,48,49,42,46,50]
+pedaggi :: [5,7,10,3,13,17,42,5,8,0]
+
+!quindi in questo momento si sceglierà la strada 8 
+
+writeln("*************PUNTO B**********************")
+! z* per come lo interpretato io è 42 
+
+declarations
+cap : array(str) of integer 
+rp : array(str) of real 
+y : array(str) of mpvar
+costo_finale : linctr
+end-declarations
+cap :: [7,9,5,8,4,2,10,6,8,3]
+rp :: [42/7,42/6,42/4,42/9,42/3,42/2,42,42/8,42/5,42/10]
+
+! introduco vincolo sulla capacità
+forall(i in str) do 
+      y(i) is_integer
+      y(i)<=cap(i)
+      end-do
+sum(i in str) y(i)=50
+costo_finale := sum(i in str) (cf(i) + y(i)*rp(i))
+maximise(costo_finale)
+writeln("costo finale: ",getobjval)
+writeln("dsitribuzione totale")
+forall(i in str) do 
+    writeln("strada ",i,": ",getsol(y(i)))
+    end-do
+end-model

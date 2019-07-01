@@ -1,0 +1,95 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+  giorni = 1..1000 
+  attivita = 1..20
+  durata,duratabreve,costo: array(attivita) of integer
+  prec: array(attivita,attivita) of integer
+  t: array(attivita) of mpvar ! t(i) inizio della attività i
+  vinc : array(attivita,attivita) of linctr
+  
+  progetto : linctr
+end-declarations
+
+durata::[80,20,37,28,39,18,78,96,46,34,29,27,10,8,6,12,8,10,6,0]
+duratabreve::[75,15,30,26,33,12,65,82,40,26,20,25,8,6,5,10,8,8,6,0]
+costo::[100,20,40,35,40,20,150,240,50,46,37,35,32,10,15,17,10,15,10,0]
+
+prec::[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,1,1,1,1,0,1,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,1,1,1,1,0,1,0,0,0,0,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,
+	   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0]
+
+
+
+
+
+
+!rispettare le precedenze
+forall(i,j in attivita | i>j) do
+  vinc(i,j) :=  t(i)-t(j)*prec(i,j)>=durata(j)
+  end-do
+progetto := t(20) - t(1) 
+minimise(progetto)
+
+
+writeln("sol: ",getobjval)
+
+forall(i in attivita) do 
+  writeln("inizio attività ",i,": ",getsol((t(i))))
+end-do
+
+writeln("****************punto b*****************")
+
+declarations
+tetto = 1000
+m : array(attivita) of mpvar ! m(i)=1 se pago per velocizzare 
+dur : array(attivita) of mpvar ! dur(i) è l'effettiva durata dei lavori 
+
+end-declarations
+
+forall(i,j in attivita | i>j) do
+  sethidden(vinc(i,j),true)
+  end-do 
+  
+! non posso andare oltre il tetto massimo 
+sum(i in attivita) m(i)*costo(i)<=tetto
+forall(i in attivita) do 
+  m(i) is_binary
+  dur(i) = m(i)*duratabreve(i) + (1-m(i))*durata(i)
+  end-do 
+
+forall(i,j in attivita | i>j) do
+  vinc(i,j) :=  t(i)-t(j)*prec(i,j)>=dur(j)
+end-do
+
+
+minimise(progetto)
+
+
+writeln("sol: ",getobjval)
+
+forall(i in attivita) do 
+  writeln("inizio attività ",i,": ",getsol((t(i))))
+end-do
+
+end-model

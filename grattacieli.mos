@@ -1,0 +1,63 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    mesi = 1..6
+    rich:array(mesi) of integer
+    x:array(mesi) of mpvar ! x(i)=numero di persone che lavorano nel mese i
+    usc:array(0..5) of mpvar !usc(j) = numero di persone che lasciano il cantiere alla fine del  mese j (escluso agosto)
+    ent:array(mesi) of mpvar !ent(i)=numero di persone che entrano in cantiere all'inizio del mese i
+    over:array(mesi) of mpvar !over(i)=numero di persone che sono di più del dovuto
+    under:array(mesi) of mpvar !numero di persone meno del dovuto
+    costi:linctr
+  end-declarations
+
+  rich::[4,6,7,4,6,3]
+  forall(i in mesi) do
+    ent(i) is_integer
+    x(i) is_integer
+    x(i)>=0
+    over(i) is_integer
+    under(i) is_integer
+  end-do
+
+  forall(i in 0..5) usc(i) is_integer
+
+  usc(0) = 0
+  x(1) = 3 - usc(0) + ent(1) !mese di marzo
+  forall(j in 2..6) do
+    x(j) = x(j-1) - usc(j-1) + ent(j)
+  end-do
+
+  forall(i in  mesi) do
+    x(i) - under(i) +over(i) = rich(i)  ! bisogna arrivare alla richiesta
+  end-do
+
+  forall(i in mesi) do
+    over(i)<=(1/4)*x(i)
+    ent(i)<=3
+  end-do
+
+  forall(i in 1..5) do
+    usc(i)<=x(i)/3
+  end-do
+
+  costi:=sum(i in mesi)(ent(i)*100+under(i)*200+over(i)*200) + sum(i in 0..5)usc(i)*160
+  minimise(costi)
+  writeln("sol:   ",getobjval)
+
+  forall(i in mesi) do
+    writeln("****MESE ",i,"*****")
+    writeln("lavoratori   under        over      entranti")
+    writeln(getsol(x(i)),"             ",getsol(under(i)),"             ",getsol(over(i)),"             ",getsol(ent(i)))
+  end-do
+  
+  forall(i in 0..5) do 
+    writeln("***MESE ",i,"****")
+    writeln("uscenti")
+    writeln("   ",getsol(usc(i)),"    ")
+    end-do
+    
+end-model

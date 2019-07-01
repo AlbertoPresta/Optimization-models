@@ -1,0 +1,46 @@
+model ModelName
+  !options noimplicit
+  uses "mmxprs"
+
+  declarations
+  M = 1..2  !number of rows (constraints)
+  N = 1..2  ! number of cols (variables)
+  
+  
+  B: array(M) of integer ! vector
+  C: array(N) of integer ! vector
+  A: array(M,N) of integer ! matrix
+  
+  x: array(N) of mpvar ! decision variables
+  
+  useres: array(N) of linctr ! way to give a name to linear constraints
+  
+  ! mpvar: way to decide decision variables
+    profit:linctr
+  ! linctr are the linear constraint and objective variable
+  end-declarations
+ A::[3, 2,
+     1, 3]
+ B::[160, 200]
+ 
+ C::[5, 20]
+  writeln("Begin running model")
+  !forall(j in N) x(j) is_integer
+  forall(i in M) useres(i) := sum(j in N) A(i,j)*x(j) <= B(i)  !our constrains
+  
+  profit:= sum(j in N)C(j)*x(j) ! objective function
+  
+  !writeln("profit_before: = ",getobjval)
+  setparam("XPRS_VERBOSE",TRUE) ! it says to us every step of the resolution of the problem
+
+  ! here it starts to solve the problem
+
+
+  maximise(profit)
+  writeln("profit: = ",getobjval)
+  forall(j in N)writeln("x(",j,") = ",getsol(x(j)))
+  
+  forall(i in N)writeln("y(",i,") = ",getdual(useres(i)))
+  ! it gives us the dual usual
+  writeln("End running model")
+end-model

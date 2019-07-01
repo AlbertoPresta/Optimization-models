@@ -1,0 +1,141 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    dest = 1..6
+    stud = 1..10
+    prior = 1..2
+    domanda : array(stud,dest,prior) of integer
+    disp : array(dest) of integer
+    vinc :array(stud,dest,prior) of linctr
+    x: array(stud,dest,prior) of mpvar !x(i,j,k)=1 se lo studente i è stato assegnato alla dest j con priorità k
+    func:linctr
+  end-declarations
+
+  domanda(1,1,1):=1
+  domanda(1,3,2):=1
+  domanda(2,6,1):=1
+  domanda(2,2,2):=1
+  domanda(3,3,1):=1
+  domanda(3,5,2):=1
+  domanda(4,2,1):=1
+  domanda(4,4,2):=1
+
+  domanda(5,4,1):=1
+  domanda(5,2,2):=1
+  domanda(6,2,1):=1
+  domanda(6,5,2):=1
+  domanda(7,5,1):=1
+  domanda(7,3,2):=1
+  domanda(8,6,1):=1
+  domanda(8,2,2):=1
+
+  domanda(9,3,1):=1
+  domanda(9,5,2):=1
+  domanda(10,3,1):=1
+  domanda(10,6,2):=1
+
+  disp::[2,2,2,2,1,1]
+
+  forall(i in stud,j in dest,k in prior) x(i,j,k) is_binary
+
+  !funzione obiettivo: massimizzare studenti con priorià 1
+  func := sum(i in stud,j in dest)x(i,j,1)
+  
+  ! non andare dove non si vuola
+  forall(i in stud,j in dest,k in prior) vinc(i,j,k):= x(i,j,k)<=domanda(i,j,k)
+  ! mandare tutti gli studenti da qualche parte
+  forall(i in stud) do
+    sum(j in dest,k in prior) x(i,j,k)=1
+  end-do
+
+  !rispettare le disponibilità
+  forall(j in dest) do
+    sum(i in stud,k in prior) x(i,j,k) <=disp(j)
+    end-do
+
+  maximise(func)
+  writeln("sol:   ",getobjval)
+  if (getprobstat = XPRS_INF) then
+    writeln("il problema è infeasible")
+  end-if
+  
+  writeln("modifichiamo le relazioni aggiungendo una preferenza")
+  declarations
+  new_prior = 1..3
+  x_new :array(stud,dest,new_prior) of mpvar
+  domandan: array(stud,dest,new_prior) of integer 
+  end-declarations
+  
+  domandan(1,1,1):=1
+  domandan(1,3,2):=1
+  domandan(1,2,3):=1
+  
+  domandan(2,6,1):=1
+  domandan(2,2,2):=1
+  domandan(2,5,3):=1
+  
+  domandan(3,3,1):=1
+  domandan(3,5,2):=1
+  domandan(3,4,3):=1
+  
+  domandan(4,2,1):=1
+  domandan(4,4,2):=1
+  domandan(4,1,3):=1
+
+  domandan(5,4,1):=1
+  domandan(5,2,2):=1
+  domandan(5,3,3):=1
+  
+  domandan(6,2,1):=1
+  domandan(6,5,2):=1
+  domandan(6,1,3):=1
+  
+  domandan(7,5,1):=1
+  domandan(7,3,2):=1
+  domandan(7,5,3):=1
+  
+  domandan(8,6,1):=1
+  domandan(8,2,2):=1
+  domandan(8,5,3):=1
+
+  domandan(9,3,1):=1
+  domandan(9,5,2):=1
+  domandan(9,4,3):=1
+  
+  domandan(10,3,1):=1
+  domandan(10,6,2):=1
+  domandan(10,4,3):=1
+  forall(i in stud,j in dest,k in new_prior) x_new(i,j,k) is_binary
+  
+  forall(i in stud,j in dest,k in prior) sethidden(vinc(i,j,k),true)
+  
+  forall(i in stud,j in dest,k in new_prior) x_new(i,j,k)<=domandan(i,j,k)
+  func := sum(i in stud,j in dest)x_new(i,j,1)
+  
+  forall(i in stud) do
+    sum(j in dest,k in new_prior) x_new(i,j,k)=1
+  end-do
+
+  !rispettare le disponibilità
+  forall(j in dest) do
+    sum(i in stud,k in new_prior) x_new(i,j,k) <=disp(j)
+    end-do
+
+  
+  maximise(func)
+  writeln("sol:   ",getobjval)
+  forall(j in dest,i in stud,k in new_prior) do 
+    if(getsol(x_new(i,j,k))>0) then 
+      writeln("la destinazione ",j," è stata assegnata allo studente ",i," con priorità ",k)
+    end-if
+  end-do
+  
+  
+  
+  
+  
+
+end-model

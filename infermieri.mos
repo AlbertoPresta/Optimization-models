@@ -1,0 +1,86 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+!OPZIONI DI PRESOLVING
+ setparam("XPRS_PRESOLVE", 0)
+ setparam("XPRS_MIPPRESOLVE", 0)
+  declarations
+   inf = 1..9
+   rep = 1..3
+   turni = 1..7
+   richieste : array(rep,turni) of integer
+   comp : array(inf,rep) of integer
+   cost : array(inf,rep) of integer
+   x : array(inf,turni,rep) of mpvar
+
+    costi:linctr
+  end-declarations
+
+richieste :: [2,1,2,1,2,1,1,
+              1,1,2,1,1,1,2,
+              0,2,1,1,2,2,1]
+comp :: [1,0,0,
+        0,1,1,
+        0,1,0,
+        1,1,1,
+        1,0,1,
+        1,1,0,
+        0,1,1,
+        1,0,1,
+        1,1,1]
+
+cost :: [7,10,10,
+          10,6,9,
+          10,4,10,
+          3,3,5,
+          4,10,6,
+          5,7,10,
+          10,3,9,
+          2,10,8,
+          6,7,3]
+          
+! variabile binaria
+forall(i in inf,j in turni,k in rep) x(i,j,k) is_binary
+          
+! per ogni turno un infermiere è impegnato solo in un reparto 
+forall(i in inf,j in turni) sum(k in rep)x(i,j,k)<=1
+
+!tutti i turni devono essere coperti regolarmente
+forall(j in turni , k in rep) sum(i in inf) x(i,j,k)>=richieste(k,j)
+
+!solo infermieri competenti 
+forall(i in inf,j in turni,k in rep) x(i,j,k)<=comp(i,k)
+
+! un infermieri deve lavorare almeno due volte,ma non più di cinque
+forall(i in inf) do 
+    sum(j in turni,k in rep) x(i,j,k)>=2
+    sum(j in turni,k in rep) x(i,j,k)<=5
+    end-do
+
+!niente turni consecutivi
+!forall(i in inf,k in rep) do 
+    !sum(j in 1..6) (x(i,j,k)+x(i,j+1,k)) <=1
+   ! end-do
+! Ogni infermiere non deve mai lavorare in due turni consecutivi
+forall(i in inf, j in turni) do
+	sum(k in rep)(x(i, j, k)) + if(j=1, 0, sum(r in rep)(x(i, j-1, r)) ) <= 1
+    end-do
+
+! ogni infermiere non può essere presente più di due volte nello stesso reparto
+forall(i in inf,k in rep) sum(j in turni)x(i,j,k)<=2
+      
+costi := sum(j in turni,i in inf,k in rep) x(i,j,k)*cost(i,k)
+minimise(costi)
+
+writeln("costo totale: ",getobjval)
+
+forall(j in turni,k in rep,i in inf) do 
+      if(getsol(x(i,j,k))>0) then
+      writeln("turno " ,j)
+      writeln("reparto ",k)
+      writeln("infermiere assegnato ", i)
+          end-if
+      end-do
+end-model

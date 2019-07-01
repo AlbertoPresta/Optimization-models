@@ -1,0 +1,94 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  
+  
+  
+declarations
+BOX = 1..10
+BIN = 1..4
+
+peso: array(BOX) of integer 
+altezza : array(BOX) of integer 
+bin_alt : array(BIN) of integer 
+
+costi : array(BIN) of integer 
+x : array(BOX,BIN) of mpvar ! 1 se la scatola i la metto nello scatolone j 
+w : array(BIN) of mpvar ! 1 se utilizzo scatolone i 
+z : array(BIN) of mpvar ! differenza di 7 
+sol : linctr
+end-declarations
+
+peso :: [3,3,3,2,2,2,3,3,3,5]
+altezza :: [1,1,1,2,2,2,4,4,4,5]
+bin_alt :: [10,18,15,10]
+costi :: [7,9,6,15]
+
+setparam("XPRS_VERBOSE",true)
+setparam("XPRS_CUTSTRATEGY",0)
+setparam("XPRS_MIPRELSTOP",30)
+
+forall(j in BIN) sum(i in BOX) x(i,j)*altezza(i)<=bin_alt(j)*w(j)
+
+!ogni scatola mandata UNA SOLA VOLTA 
+forall(i in BOX) sum(j in BIN) x(i,j) = 1
+forall(i in BOX,j in BIN) x(i,j) is_binary
+
+!imposizioni sul peso 
+forall(j in BIN) do 
+    sum(i in BOX)x(i,j)*peso(i)<=9*w(j)
+    sum(i in BOX)x(i,j)*peso(i)>=5*w(j)
+    end-do 
+
+! considizioni sulla differenza 
+forall(scat in BIN) do
+    w(scat) is_binary
+    !z(scat) is_integer
+    !z(scat)>=0
+    z(scat)<=sum(i in BOX)(x(i,scat)*peso(i)) - 7
+    z(scat)>= 7 - sum(i in BOX)(x(i,scat)*peso(i))
+end-do 
+
+sol := sum(j in BIN)(w(j)*costi(j) + z(j))
+minimise(sol) 
+writeln(getobjval)
+
+writeln("Il costo minimo é ", getobjval)
+writeln("-----------------")
+forall(i in BIN) do
+   writeln("Nello scatolone ",i," viene messa la scatola ")
+   forall(j in BOX)do 
+      if(getsol(x(j,i))=1) then 
+      write(j, " ")
+      end-if
+   end-do
+   writeln(" ")
+   writeln("Il cui peso si discosta dal valore di 7kg di ",getsol(w(i))," kg")
+   writeln("-----------------")
+end-do 
+end-model
+writeln("++++++++++++++++++++PUNTO B+++++++++++++++++")
+
+
+
+
+
+setparam("XPRS_VERBOSE",true)
+setparam("XPRS_CUTSTRATEGY",0)
+setparam("XPRS_MIPRELSTOP",0.04)
+minimise(sol) 
+writeln("Il costo minimo é ", getobjval)
+writeln("-----------------")
+forall(i in BIN) do
+   writeln("Nello scatolone ",i," viene messa la scatola ")
+   forall(j in BOX)do 
+      if(getsol(x(j,i))=1) then 
+      write(j, " ")
+      end-if
+   end-do
+   writeln(" ")
+   writeln("Il cui peso si discosta dal valore di 7kg di ",getsol(w(i))," kg")
+   writeln("-----------------")
+end-do 
+
+end-model

@@ -1,0 +1,56 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    NMin = 1
+    MINE = 1..6
+    GR = 1..6  ! numero massimo di gruppi
+    inc : array(MINE,MINE) of integer ! array di incompatibilità
+    q : array(MINE) of integer
+    pr : array(MINE) of integer
+    x: array(MINE,GR) of mpvar ! uno se minerale i è associato a gruppo j 
+    y : array(GR) of mpvar ! 1 se gruppo i è attivato 
+    division : linctr
+  end-declarations
+
+q :: [20,45,30,30,50,25]
+
+pr :: [6,3,4,5,2,7]
+
+inc :: [2,1,2,2,1,2,
+    1,2,1,2,2,2,
+    2,1,2,1,2,1,
+    2,2,1,2,1,2,
+    2,2,1,2,2,2]
+
+!la risposta giusta è 1 visto che posso mischiare M1-M3 e m2-m4-m6
+
+!PARTE 2 
+declarations
+cont = 1..8 ! ogni contenitore può contenere due minerali --> come se ci fossero 8 contenitori da 22.5 m^3 l'uno, ognuno con un solo tipo di minerale
+prof : linctr
+z: array(MINE,cont) of mpvar ! quantità di minerale messa nel contenitore j 
+m : array(MINE,cont) of mpvar ! 1 se nel contenitore j metto minerale i 
+end-declarations
+
+
+forall(i in MINE,j in cont) z(i,j) is_integer
+!ogni 
+!un solo tipo di minerale per scompartimento 
+forall(j in cont) sum(i in MINE) m(i,j)=1
+
+!quantità massima di minerali 
+forall(i in MINE, j in cont)do 
+    z(i,j)<=22.5*m(i,j)
+    z(i,j)<=q(i)
+    end-do
+
+prof := sum(i in MINE,j in cont)z(i,j)*pr(i)
+
+maximise(prof)
+
+writeln("sol:   ",getobjval)
+
+end-model

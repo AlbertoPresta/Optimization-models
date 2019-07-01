@@ -1,0 +1,79 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    OG = 1..8
+    SC = 1..5
+    SOGLIA = 80
+    peso: array(OG) of integer
+    valore : array(OG) of integer
+    scat : array(SC) of integer
+    y: array(SC) of mpvar ! 1 se acquisto le scatola i
+    x: array(OG,SC) of mpvar
+    p : array(OG) of linctr
+    num:linctr
+    val : linctr
+  end-declarations
+
+peso :: [10,15,17,7,9,13,4,20]
+valore :: [6,20,15,7,12,17,8,14]
+scat :: [15,20,30,35,40]
+
+forall(j in SC) y(j) is_binary
+forall(i in OG,j in SC) x(i,j) is_binary
+
+! metto tutti gli oggetti
+forall(i in OG) p(i):=sum(j in SC)x(i,j)=1
+
+!vincoli sulle scatole
+forall(j in SC)sum(i in OG)x(i,j)*peso(i)<=y(j)*scat(j)
+
+num := sum(j in SC)y(j)
+
+minimise(num)
+
+writeln("sol:   ",getobjval)
+forall(j in SC) do 
+    if(getsol(y(j))>0) then
+      writeln("la scatola ",j," è stata utilizzata per mettere i seguenti oggetti: ")
+      forall(i in OG) do 
+        if(getsol(x(i,j))>0) then 
+            write("oggetto: ",i," ")
+            end-if
+        end-do
+      writeln(" ")
+      end-if
+    end-do
+
+writeln("******************PUNTO B************************")
+
+!ora la somma di tutti gli oggetti deve essere minore o uguale a 80
+
+sum(i in OG, j in SC) x(i,j)*peso(i) <= SOGLIA
+
+forall(i in OG) sethidden(p(i),true)
+
+val := sum(i in OG, j in SC) x(i,j)*valore(i)
+!oggetto messo solo una volta 
+forall(i in OG) p(i):=sum(j in SC)x(i,j)<=1
+
+maximise(val)
+
+writeln("sol:   ",getobjval)
+
+forall(j in SC) do 
+    !if(getsol(y(j))>0) then
+      writeln("la scatola ",j," è stata utilizzata per mettere i seguenti oggetti: ")
+      forall(i in OG) do 
+        if(getsol(x(i,j))>0) then 
+            write("oggetto: ",i," ")
+            end-if
+        end-do
+      writeln(" ")
+      !end-if
+    end-do
+
+
+end-model

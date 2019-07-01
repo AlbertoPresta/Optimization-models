@@ -1,0 +1,64 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    voli = 1..13
+    slot = 1..15
+    arrivi_prev : array(voli) of integer
+    inizio_slot : array(slot) of integer
+    fine_slot: array(slot) of integer
+    costi : array(slot) of integer
+
+    t: array(voli) of mpvar ! t(i) : minuto di atterraggio del volo i
+    x: array(voli,slot) of mpvar ! x(i,j) = 1 se il volo i arriva allo slot j
+    rit:linctr
+    costi_2 : linctr
+  end-declarations
+
+  arrivi_prev::[0,13,25,28,29,34,35,36,40,45,48,50,54]
+  costi :: [16,18,9,9,16,20,10,18,18,18,15,17,9]
+  inizio_slot :: [0,6,12,18,24,30,36,42,48,54,60,66,72,78,84]
+  fine_slot :: [5,11,17,23,29,35,41,47,53,59,65,71,77,83,89]
+
+  !forall(i in voli) t(i) is_integer
+  forall(i in voli,j in slot) x(i,j) is_binary
+
+  !ogni volo non può atterrre prima
+  forall(i in voli) do
+    t(i) >=arrivi_prev(i)
+  end-do
+
+  !tutti i voli devono atterrare
+  forall(i in voli) do
+    sum(j in slot) x(i,j)=1
+    end-do
+
+  !una slot può contenere al massimo un volo
+  forall(j in slot) do
+    sum(i in voli)x(i,j)<=1
+  end-do
+
+  ! imporre di stare dentro gli slot
+  forall(i in voli) do
+    t(i)<=sum(j in slot)fine_slot(j)*x(i,j)
+    t(i)>=sum(j in slot)inizio_slot(j)*x(i,j)
+  end-do
+
+  rit := sum(i in voli)(t(i)-arrivi_prev(i))
+  minimise(rit)
+  writeln("sol:   ",getobjval)
+  
+  forall(j in slot,i in voli) do 
+    if(getsol(x(i,j))>0) then 
+      writeln("slot ",j,"  aereo ",i," con orario d'arrivo ",getsol(t(i)))
+      end-if
+  end-do
+  
+  writeln("***************punto b***************")
+  
+  costi_2 := sum(i in voli)(t(i)-arrivi_prev(i))*costi(i)
+  minimise(costi_2)
+  writeln("sol:   ",getobjval)
+end-model

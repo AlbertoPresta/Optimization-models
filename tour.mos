@@ -1,0 +1,40 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    city = 1..7
+
+    distance_mat:array(city,city) of integer
+
+    x:array(city,city) of mpvar
+    tour:linctr
+  end-declarations
+
+  distance_mat::[0,786,549,657,331,559,250,
+                786,0,668,979,593,224,905,
+                549,668,0,316,607,479,467,
+                657,979,316,0,890,769,400,
+                331,593,607,890,0,386,559,
+                559,224,479,769,386,0,681,
+                250,905,467,400,559,681,0]
+
+  forall(i,j in city | i<>j) x(i,j) is_binary
+  
+  ! da ogni stazione parto una volta sola
+  forall(i in city) do
+  sum(j in city | i<>j)x(i,j)=1 ! da ogni stazione parto una volta sola
+  sum(j in city | i<>j)x(j,i)=1 ! arrivo una volta sola
+  end-do
+
+  tour := sum(i,j in city | i<>j)x(i,j)*distance_mat(i,j)
+  minimise(tour)
+
+  forall(i,j in city ) do
+    if(getsol(x(i,j))>0) then
+      writeln("dalla città ",i," vado a ",j)
+    end-if
+  end-do
+
+end-model

@@ -1,0 +1,56 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    time = 1..6
+    product = 1..4
+    demand:array(product,time) of integer
+    cp:array(product) of integer
+    cs:array(product) of real
+    si:array(product) of integer
+    sf:array(product) of integer
+    y:array(product,time) of mpvar !y(i,j)=quantità totale di materiali i al mese j
+    x:array(product,time) of mpvar !x(i,j)=quantità di i prodotta nel mese j
+    ecc:array(product,0..6) of mpvar ! ecc(i,j)=prodotto i lasciato nel magazzino nel mese j
+    costi:linctr
+  end-declarations
+
+  demand::[1500, 3000, 2000, 4000, 2000, 2500,
+	1300,  800,  800, 1000, 1100,  900,
+	2200, 1500, 2900, 1800, 1200, 2100,
+	1400, 1600, 1500, 1000, 1100, 1200]
+
+	cp::[20, 25, 10, 15]
+	cs::[0.4, 0.5, 0.3, 0.3]
+	si::[10, 0, 50, 0]
+	sf::[50, 10, 30, 10]
+
+	forall(i in product,j in time) do
+	  x(i,j) is_integer
+	  y(i,j) is_integer
+	 end-do
+	forall(i in product,j in 0..6) ecc(i,j) is_integer
+
+
+	!condizioni iniziali e finali
+	forall(i in product) do
+	  ecc(i,0)=si(i)
+	  ecc(i,6)>=sf(i)
+	end-do
+
+  !rispettare le richieste
+  forall(i in product,j in time) do
+    y(i,j) - ecc(i,j)>=demand(i,j)
+    y(i,j)=x(i,j) + ecc(i,j-1)
+  end-do
+
+  costi:=sum(j in time,i in product)x(i,j)*cp(i) +sum(j in 0..6,i in product)ecc(i,j)*cs(i)
+  minimise(costi)
+
+  writeln("sol:",getobjval)
+  forall
+
+
+end-model

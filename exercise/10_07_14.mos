@@ -1,0 +1,97 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    siti = 1..6
+    fat = 1..7
+    TR = 0.06
+    SOMMA = 262 ! somma delle richieste
+    ric : array(fat) of integer 
+    A : array(siti,fat) of integer ! chilometri tra siti e fattorie
+    disp : array(siti) of integer !foraggio disponibile massimo al sito i-esimo
+    cf : array(siti) of real ! "costi fissi" i costi fissi li divido per il numero di giorni che ci sono in quattro anni 
+    cpq : array(siti) of real ! costi per quintale giornalieri 
+    y : array(siti) of mpvar ! y(i)=qunatità di foraggio che metto nel sito i
+    x : array(siti) of mpvar !x(i) =1 se utilizzo il sito i oppure no
+    z : array(siti,fat) of mpvar !z(i,j) = quantità che dal sito i trasporto al sito j
+    costi:linctr
+  end-declarations
+  
+  ric :: [36,42,34,50,27,30,43]
+  disp::[80,90,110,120,100,120]
+  A :: [18,23,19,21,24,17,9,
+        21,18,17,23,11,18,20,
+        27,18,17,20,23,9,18,
+        16,23,9,31,21,23,10,
+        31,20,18,19,10,17,18,
+        18,17,29,21,22,18,8]
+  
+  cf :: [321420/1461,350640/1461,379860/1461,401775/1461,350640/1461,336030/1461]
+  cpq :: [0.15,0.18,0.20,0.18,0.15,0.17]
+  
+  forall(i in siti) do  
+      x(i) is_binary
+      y(i) is_integer
+      end-do
+  forall(i in siti,j in fat) z(i,j) is_integer
+  
+  
+  forall(i in siti) do 
+      y(i)<=700*x(i) ! se x(i) è uguale a zero, allora y(i) deve essere zero
+      y(i)<=disp(i) ! introduciamo limiti di capacità per ogni sito
+      sum(j in fat) z(i,j) <= y(i) !non posso inviare più di quello che metto nel sito i-esimo
+      end-do
+  
+  ! bisogna soddisfare le richieste totali 
+  sum(i in siti) y(i) = SOMMA
+  
+  forall(j in fat) do 
+      sum(i in siti) z(i,j) = ric(j) !per ogni j-esima fattoria, devo soddisfare le richieste 
+      end-do
+  
+  ! devo dire che se x(i)= 0 allora z(i,j)= 0 per ogni j 
+  forall(i in siti,j in fat) do
+      z(i,j)<=1000*x(i)
+      end-do
+      
+  
+  costi := sum(i in siti) (cf(i)*x(i) + cpq(i)*y(i)) + sum(i in siti,j in fat)(z(i,j)*A(i,j)*TR*2) 
+  
+  minimise(costi)
+  writeln("costo:  ",getobjval)
+  writeln("siti utilizzati: ")
+  forall(i in siti) do 
+      if(getsol(x(i))>0) then
+          writeln("sito ",i," dove metto ", getsol(y(i))," quintali di foraggio")
+          end-if
+        end-do
+  writeln("analizziamo i trasporti: ")
+  forall(i in siti,j in fat) do 
+      if(getsol(z(i,j))>0) then
+          writeln("quantità trasportata dal sito ", i , " alla fattoria ",j," : ",getsol(z(i,j)))
+        end-if
+      end-do
+
+writeln("************************PUNTO B*********************")
+
+y(6)>=90*x(6)
+
+minimise(costi)
+
+writeln("costo:  ",getobjval)
+  writeln("siti utilizzati: ")
+  forall(i in siti) do 
+      if(getsol(x(i))>0) then
+          writeln("sito ",i," dove metto ", getsol(y(i))," quintali di foraggio")
+          end-if
+        end-do
+  writeln("analizziamo i trasporti: ")
+  forall(i in siti,j in fat) do 
+      if(getsol(z(i,j))>0) then
+          writeln("quantità trasportata dal sito ", i , " alla fattoria ",j," : ",getsol(z(i,j)))
+        end-if
+      end-do
+
+end-model

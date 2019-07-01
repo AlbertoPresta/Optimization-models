@@ -1,0 +1,68 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    part = 1..3
+    arr = 1..3
+
+    costi : array(part,arr) of integer
+    richieste : array(arr) of integer
+    disp : array(part) of integer
+    x : array(part,arr) of mpvar ! x(i,j) = numero di tondini che da i arrivano  a j
+    y : array(part,arr) of mpvar ! y(i,j) = 1 se da i parte un furgone per j
+    z : mpvar ! uso il quinto furgone ?
+    Ob:linctr
+  end-declarations
+
+  richieste :: [8000,5000,4000]
+  disp :: [7000,6000,4000]
+  costi :: [9,6,5,
+            7,4,9,
+            4,6,3]
+
+  z is_binary
+  forall(i in part,j in arr) do
+    x(i,j) is_integer
+    y(i,j) is_binary
+    end-do
+
+  ! somma dei furgoni deve essere al massimo 4
+  forall(i in part,j in arr) y(i,j)<= 4 + z
+
+  !da A e B non si può arrivare a 2
+  y(1,2)+y(2,2)<=1
+
+  ! se non parte il camion non si può fare nulla...a meno che non si usi il camion ausiiario
+  forall(i in part,j in arr) do
+    x(i,j)<=10000*y(i,j) 
+    end-do
+
+  ! rispettare le richieste
+  forall(j in arr) do
+    sum(i in part) x(i,j)>=richieste(j)
+    end-do
+
+  forall(i in part) do
+      sum(j in arr)x(i,j)<=disp(i)
+      end-do
+
+  ! z lo si può usare solo se ho 5 camion
+ ! z<=sum(i in part,j in arr)(y(i,j))/4
+
+  Ob := 50*sum(i in part,j in arr)y(i,j) + z*15 + sum(i in part,j in arr)(x(i,j)*costi(i,j)*0.01)
+
+  minimise(Ob)
+
+  writeln("sol:   ",getobjval)
+  writeln(getsol(z))
+  
+  forall(i in part, j in arr) do 
+    if(getsol(y(i,j))>0) then 
+      writeln("dal cantiere ",i," al cantiere ",j," trasporto ",getsol(x(i,j)) ," tondini ")
+      end-if
+    end-do 
+    
+    
+end-model

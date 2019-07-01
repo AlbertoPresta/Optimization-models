@@ -1,0 +1,71 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    st = 1..4
+    cap : array(1..2) of integer
+    asp_prima : array(st,st) of integer
+    asp_seconda : array(st,st) of integer
+    costi : array(1..2) of integer
+    prezzi_prima : array(st,st) of integer
+    prezzi_seconda : array(st,st) of integer
+     car : array(1..2) of mpvar ! car(1)= # carrozze di prima classe
+    y : array(st,st,1..2) of mpvar ! y(i,j,k) = # numero di biglietti messi in vendita stazione i alla j di classe k
+    z : array(st,st,1..2) of mpvar !z(i,j,k) = # numero di biglietti VENDUTI dalla stazione i alla j di classe k
+    ricavi:linctr
+  end-declarations
+
+cap :: [53,74]
+costi :: [8950,7900]
+prezzi_prima :: [72,90,145,150,
+                  0,65,100,120,
+                  0,0,70,95,
+                  0,0,0,50]
+
+prezzi_seconda :: [35,70,100,120,
+                    0,30,55,80,
+                    0,0,40,60,
+                    0,0,0,20]
+
+asp_prima :: [143,150,107,62,
+              0,120,95,68,
+              0,0,78,69,
+              0,0,0,150]
+
+asp_seconda :: [251,268,384,201,
+                0,189,537,400,
+                0,0,385,259,
+                0,0,0,462]
+
+! la somma della carrozze deve essere minori o uguali a 11
+car(1)+car(2)<=11
+
+forall(i in 1..2)car(i) is_integer
+forall(i in st,j in st, k in 1..2) y(i,j,k) is_integer
+!cercare di rispettare le aspettative storiche per ogni tratta
+forall(i in st,j in st) do
+    y(i,j,1)<=asp_prima(i,j)
+    y(i,j,2)<=asp_seconda(i,j)
+    end-do
+
+forall(k in 1..2) do
+	y(1,1,k) + y(1,2,k) + y(1,3,k) + y(1,4,k) <= cap(k)*car(k)
+	y(2,2,k) + y(2,3,k) + y(2,4,k) + y(1,2,k) + y(1,3,k) + y(1,4,k) <= cap(k)*car(k)
+	y(3,3,k) + y(3,4,k) + y(1,3,k) + y(1,4,k) + y(2,3,k) + y(2,4,k) <= cap(k)*car(k)
+	y(4,4,k) + y(3,4,k) + y(2,4,k) + y(1,4,k) <= cap(k)*car(k)
+end-do
+
+
+
+ricavi := sum(i in st,j in st | j>i)(y(i,j,1)*prezzi_prima(i,j)) + sum(i in st,j in st | j>i)(y(i,j,2)*prezzi_seconda(i,j)) - sum(i in 1..2)car(i)*costi(i)
+
+maximise(ricavi)
+
+writeln("ris:   ",getobjval)
+writeln("carrozze di prima classe:  ",getsol(car(1)))
+writeln("carrozze di seconda classe:  ",getsol(car(2)))
+
+
+end-model

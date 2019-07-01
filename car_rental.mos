@@ -1,0 +1,61 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    agenzie = 1..10
+
+    x_cord:array(agenzie) of integer
+    y_cord:array(agenzie) of integer
+    rich:array(agenzie) of integer
+    cars:array(agenzie) of integer
+    distance_mat:array(agenzie,agenzie) of real
+    totali:array(agenzie) of mpvar
+    x:array(agenzie,agenzie) of mpvar !x(i,j)=numero di macchine che da i sposto a j
+
+    costo:linctr
+  end-declarations
+
+x_cord::[0,20,18,30,35,33,5,5,11,2]
+y_cord::[0,20,10,12,0,25,27,10,0,15]
+rich::[10,6,8,11,9,7,15,7,9,12]
+cars::[8,13,4,8,12,2,14,11,15,7]
+
+forall(i in agenzie) distance_mat(i,i):=0
+
+forall(i,j in agenzie |i<>j) do
+  distance_mat(i,j) := sqrt((x_cord(i)-x_cord(j))^2 + (y_cord(i)-y_cord(j))^2)*1.3
+end-do
+
+forall(i,j in agenzie | i<>j) do 
+  x(i,j) is_integer
+  x(i,j)>=0
+  end-do
+costo:=sum(i,j in agenzie | i<>j)x(i,j)*distance_mat(i,j)*0.50
+
+!ogni agenzia deve avere abbastanza macchine
+forall(j in agenzie) do
+  sum(i in agenzie | i<>j)(x(i,j)-x(j,i)) +cars(j) -rich(j)>=0
+  end-do
+
+! non posso prendere più macchina di quelle che ci sono
+
+minimise(costo)
+forall(i in agenzie) do
+  totali(i) =   cars(i) + sum(j in agenzie |i<>j)(getsol(x(i,j))-getsol(x(j,i)))
+  end-do
+
+writeln("sol:  ",getobjval)
+
+forall(i,j in agenzie | i<>j) do
+  if(getsol(x(i,j))>0) then
+  writeln("da ",i," a ",j," sposto ",getsol(x(i,j))," macchine")
+  end-if
+  end-do
+
+forall(i in agenzie) do
+  writeln("nella agenzia ",i," ci sono ",getsol(totali(i))," macchine")
+  end-do
+
+end-model

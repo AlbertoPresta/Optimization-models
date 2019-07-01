@@ -1,0 +1,72 @@
+model Esame_091218
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+M := 100 !bigM
+TH := 50 !Soglia nodi 3 e 4
+
+!sample declarations section
+declarations
+	O = 1..2 !origini
+	I = 3..5 !nodi intermedi
+	D = 6..8 !destinazioni
+    N = 1..8
+    
+    P = 1..6 !tipi di pezzi
+    
+    DIST: array(N,N) of integer
+    CAP: array(N,N) of integer
+    
+    DOM: array(P) of integer
+    
+    c: array(3..4) of integer
+    
+    y: array(3..4) of mpvar
+    x: array(N,N,P) of mpvar
+
+
+end-declarations
+
+c::[30,40]
+
+DOM::[10, 20, 30, 15, 25, 20]
+
+
+CAP::[0,0,30,40,0,0,0,0,
+	  0,0,50,20,0,0,0,0,
+	  0,0,0,100,40,15,0,0,
+	  0,0,0,0,40,0,15,10,
+	  0,0,0,0,0,25,35,20,
+	  0,0,0,0,0,0,0,0,
+	  0,0,0,0,0,0,0,0,
+	  0,0,0,0,0,0,0,0]
+
+DIST::[100,100,6,9,100,100,100,100,
+	  100,100,7,12,100,100,100,100,
+	  100,100,100,6,8,5,100,100,
+	  100,100,100,100,13,100,4,9,
+	  100,100,100,100,100,7,9,6,
+	  100,100,100,100,100,100,100,100,
+	  100,100,100,100,100,100,100,100,
+	  100,100,100,100,100,100,100,100]
+
+forall(i,j in N, p in P) x(i,j,p) is_integer 
+forall(j in 3..4) y(j) is_binary
+
+forall(i,j in N) sum(p in P) x(i,j,p) <= CAP(i,j)
+
+forall(i in I, p in P) do
+	sum(j in O+I) x(j,i,p) = sum(k in I+D) x(i,k,p)
+end-do 
+
+forall(p in P) sum(i in O, j in I) x(i,j,p) >= DOM(p) 
+
+forall(j in 3..4) y(j) >= (sum(i in O+I, p in P) x(i,j,p) - TH)/M
+
+cost := sum(i,j in N, p in P) DIST(i,j)*x(i,j,p) + sum(j in 3..4) c(j)*y(j)
+
+
+minimize(cost)
+
+writeln("sol:  ",getobjval)
+
+end-model

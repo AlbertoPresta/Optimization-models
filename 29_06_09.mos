@@ -1,0 +1,51 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+   acq = 1..4
+   ban = 1..6
+   proposte = 1..3
+   prezzo : array(ban) of integer 
+    x : array(acq,proposte) of mpvar ! 1 se acq  i è associata la proposta j
+    pox : array(acq,proposte,ban) of integer
+    ricavi:linctr
+  end-declarations
+prezzo:: [10,7,6,8,4,5]
+pox :: [1,0,0,1,0,0,       0,1,1,0,0,1,      0,0,0,0,0,0,
+        1,1,0,0,0,0,       0,1,0,1,0,0,      0,0,1,0,1,1,
+        1,0,0,0,1,0,       0,0,1,1,0,0,      0,0,0,0,0,0,
+        0,0,0,1,0,1,       0,0,0,0,0,0,      0,0,0,0,0,0]
+
+forall(i in acq,j in proposte) x(i,j) is_binary
+
+! ogni banda deve essere assegnata solo ad un acquirente
+forall(banda in ban) sum(i in acq,j in proposte) x(i,j)*pox(i,j,banda) <= 1 
+
+!una sola proposta per ognuno 
+forall(i in acq) sum(j in proposte)x(i,j) <= 1
+
+!non posso assegnare solo 0 (non necessaria)
+forall(i in acq,p in proposte) do 
+    x(i,p)<=sum(b in ban) pox(i,p,b)
+  end-do
+
+ricavi := sum(a in acq,p in proposte, b in ban) x(a,p)*pox(a,p,b)*prezzo(b)
+!setparam("XPRS_VERBOSE", true)
+maximise(ricavi)
+
+writeln("obj:   ",getobjval)
+
+forall(i in acq, p in proposte) do 
+    if(getsol(x(i,p))>0) then
+      writeln("acquirente ",i,"-->proposta  : ",p)
+      end-if
+    end-do
+    
+    
+
+
+
+
+end-model

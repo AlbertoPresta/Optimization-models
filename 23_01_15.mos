@@ -1,0 +1,54 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    cl = 1..10
+    cam = 1..4
+    colli : array(cl) of integer
+    cap : array(cl) of integer
+    costi : array(cl) of integer
+    x : array(cam,cl) of mpvar
+    y : array(cam) of mpvar
+    costo : linctr
+  end-declarations
+
+  colli :: [7,9,6,4,3,2,9,8,5,6]
+  cap :: [20,60,28,15]
+  costi :: [4,10,7,5]
+  
+  forall(i in cam,j in cl) x(i,j) is_binary
+  forall(i in cam) y(i) is_binary
+  !ogni cliente deve essere soddisfatto solo da un camiom
+  forall(j in cl) sum(i in cam) x(i,j) = 1
+  
+  
+  forall(i in cam) do
+      sum(j in cl) x(i,j)*colli(j) <= cap(i) ! limite sulle capacità
+      sum(j in cl) x(i,j)<=5 ! limite sul numero di colli da portare
+      x(i,6)+x(i,9)<=1 ! 6 e 9 non possono ricevere dallo stesso camion
+      end-do
+  forall(j in cam, k in cl) x(j,k) <= y(j)  !se non uso un camion, non posso trasportare niente 
+  costo:=sum(i in cam) y(i)*costi(i)
+  
+  minimise(costo)
+  
+  writeln("costo:  ",getobjval)
+  
+  writeln("camion utilizziati: ")
+  forall(i in cam) do
+      if(getsol(y(i))>0) then 
+          forall(j in cl) do
+              if(getsol(x(i,j))>0) then
+                  writeln("il camion ",i," trasporta la merce a ",j,".")
+                  end-if
+                end-do
+          end-if
+    end-do
+    
+  
+      
+
+
+end-model

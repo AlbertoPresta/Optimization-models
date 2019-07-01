@@ -1,0 +1,66 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+!suppongo che possano esserci al massimo 18 colori
+
+  declarations
+    index = 1..18
+    x : array(index,index) of mpvar
+    w : array(index) of mpvar
+    adiacense : array(index,index) of integer
+    N : real
+    num_col:linctr
+  end-declarations
+
+adiacense :: [0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+      1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+      1,1,0,1,0,1,1,1,1,0,0,0,0,0,1,0,0,0,
+      1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,
+      0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
+      0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,
+      0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
+      0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+      0,0,1,0,0,0,0,0,0,1,1,0,1,1,1,0,0,0,
+      0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,
+      0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,
+      0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,
+      0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,
+      0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,1,0,
+      0,0,1,1,0,0,0,0,1,0,0,0,0,1,0,1,0,0,
+      0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,
+      0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
+      0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0]
+
+forall(i,j in index)  x(i,j) is_binary
+forall(j in index) w(j) is_binary
+
+! impongo che il vertice debba avere un solo colore assegnato 
+forall(i in index) do
+    sum(j in index) x(i,j) = 1
+    end-do 
+    
+! ora impongo che vertici vicini abbiano colore diverso
+forall(i,j in index | j>i,k in index) do 
+      if(adiacense(i,j)=1) then 
+          x(i,k) + x(j,k) <= w(k) 
+          end-if
+      end-do
+      
+  
+num_col := sum(j in index) w(j)
+
+minimise(num_col)
+writeln("num_col: ",getobjval)
+
+forall(i in index, j in index) do
+  if(getsol(x(i,j)) > 0) then
+    writeln("paese: ",i," colore: ",j)
+  end-if
+end-do
+
+
+
+
+
+end-model

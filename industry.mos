@@ -1,0 +1,90 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    products = 1..4
+    lines = 1..5
+    disp: array(lines) of integer
+    pr : array(products) of integer
+    times : array(products,lines) of real
+    x:array(products) of mpvar
+    y:array(products,lines) of mpvar
+    vinc:array(lines) of linctr
+    profit:linctr
+  end-declarations
+
+  pr::[7,8,9,7]
+  disp::[4500,5000,4500,1500,2500]
+  times::[1.3,0.9,2,0.3,0.9,
+          1.8,1.7,1.4,0.6,1.1,
+          1.3,1.2,1.3,1,1.4,
+          0.9,1.1,1,0.9,1]
+
+  forall(i in products) do
+    x(i) is_integer
+  end-do
+  forall(i in products,j in lines) do
+   y(i,j) is_integer
+  end-do
+
+  !legare x e y
+  forall(i in products) do
+    x(i)=sum(j in lines)y(i,j)
+  end-do
+
+  !stare dentro i tempi
+  forall(j in lines) do
+   vinc(j):= sum(i in products)y(i,j)*times(i,j)<=disp(j)
+  end-do
+
+  profit:=sum(i in products)x(i)*pr(i)
+  maximise(profit)
+
+  forall(i in products) do
+    writeln("prodotti del tipo ",i,": ",getsol(x(i)))
+  end-do
+ writeln("profitto:  ",getobjval)
+  writeln("***************PARTE 2*****************")
+  declarations
+  transfer:array(lines,lines) of integer
+  pox:array(lines) of integer
+  z:array(lines,lines) of mpvar !z(i,j)=1 se il trasferimento da i a j è ammesso o no
+  t:array(lines,lines) of mpvar !t(i,j)= numero di ore trasferite
+  end-declarations
+
+  transfer::[0,1,1,1,0,
+            0,0,1,0,1,
+            1,1,0,1,0,
+            0,0,0,0,1,
+            1,1,1,0,0]
+
+  pox::[400,800,500,200,300]
+
+  forall(i,j in lines| i<>j) do
+    z(i,j) is_binary
+    t(i,j) is_integer
+  end-do
+
+  forall(j in lines) do
+    sethidden(vinc(j),true)
+  end-do
+
+  forall(i,j in lines | i<>j) do
+    z(i,j)<=transfer(i,j)
+    t(i,j)<=pox(i)*z(i,j)
+  end-do
+
+  forall(j in lines) do
+   sum(i in products)y(i,j)*times(i,j)<=disp(j) + sum(k in lines |k<>j)t(k,j)
+  end-do
+
+  maximise(profit)
+  
+  writeln("profitto:  ",getobjval)
+  forall(i in products) do
+    writeln("prodotti del tipo ",i,": ",getsol(x(i)))
+  end-do
+
+end-model

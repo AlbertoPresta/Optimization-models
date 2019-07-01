@@ -1,0 +1,42 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    squad = 1..6
+    pers = 1..14
+    pr : array(squad) of integer
+    A : array(squad,pers) of integer
+    x : array(squad) of mpvar
+    profit:linctr
+  end-declarations
+
+pr :: [780,800,950,1050,1200,1100]
+A::[0,0,1,0,1,0,1,1,0,0,0,1,1,0,
+	1,1,0,0,0,1,1,0,1,0,1,0,0,1,
+	0,0,0,1,0,0,0,1,1,1,0,0,1,1,
+	0,1,0,0,1,0,0,0,0,0,0,0,1,1,
+	0,0,1,0,0,1,0,1,0,0,0,0,1,0,
+	1,1,0,1,1,0,0,0,0,0,1,1,0,1]
+
+
+forall(i in squad) x(i) is_binary
+
+! devo dire che ogni persona può essere scelta solo una volta
+forall(j in pers) sum(i in squad) A(i,j)*x(i) <= 1
+
+profit := sum(i in squad) x(i)*pr(i)
+
+maximise(profit)
+
+writeln("il profitto è: ",getobjval)
+writeln("le squadra chiamate in causa sono: ")
+forall(i in squad) do 
+     writeln("squadra ",i," :  ", getsol(x(i)))
+        
+    end-do
+
+
+
+end-model

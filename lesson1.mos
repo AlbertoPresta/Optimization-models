@@ -1,0 +1,33 @@
+model ModelName
+  !options noimplicit
+  uses "mmxprs"
+  !mmxprs is the module which allows us to use the solver
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+ ! integer programming problem can be solved also in other languages (C++, C, python ...)
+ ! without saying any: variables are continuous and nonnegative
+  declarations
+  xs,xl: mpvar
+  ! mpvar: way to decide decision variables
+    profit:linctr
+  ! linctr are the linear constraint and objective variable 
+  end-declarations
+
+  writeln("Begin running model")
+  
+  3*xs+2*xl<= 160
+  xs + 3*xl <= 200
+  
+  
+  profit:= 5*xs + 20*xl
+  
+  !writeln("profit_before: = ",getobjval)
+  setparam("XPRS_VERBOSE",TRUE) ! it says to us every step of the resolution of the problem
+  
+  ! here it starts to solve the problem
+  
+  
+  maximise(profit)
+  writeln("profit: = ",getobjval)
+  writeln("xs = ",getsol(xs)," xl = ",getsol(xl))
+  writeln("End running model")
+end-model

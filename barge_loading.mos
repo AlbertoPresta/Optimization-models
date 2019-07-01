@@ -1,0 +1,69 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    CL= 1..7 !sequence of integer number from 1 to 7
+
+    size: array(CL) of integer
+    price: array (CL) of integer
+    cost: array(CL) of integer
+
+    prof: array(CL) of integer
+
+    !size,prize,cost: array(CL) of integer  !to make think shorter
+
+    x: array(CL) of mpvar
+
+    profit:linctr
+  end-declarations
+    size::[10,8,6,9,15,10,12]
+    price::[1000,600,600,800,1200,800,1100]
+    cost::[80,70,85,80,73,70,80]
+
+  writeln("Begin running model")
+
+  sum (c in CL) size(c)*x(c) <= 1500
+
+  forall(c in CL) do
+  prof(c) :=price(c) - size(c)*cost(c)
+  writeln("profit from lot",c,"=", prof(c))
+  end-do
+
+  profit:=sum(c in CL) prof(c)*x(c) !maximization of the profit
+
+  maximize(profit)
+
+  writeln("profit1=",getobjval)
+
+  forall(c in CL) writeln(c,"=",getsol(x(c)))
+
+  writeln("End running model")
+
+  declarations
+  avail: array(CL) of integer
+  end-declarations
+
+  avail::[12,31,20,25,50,40,60]
+
+  forall(c in CL) x(c)<=avail(c)
+
+  maximize(profit)
+
+  writeln("profit2=",getobjval)
+
+  forall(c in CL) writeln(c,"=",getsol(x(c)))
+
+  forall(c in CL) x(c) is_integer
+
+  maximize(profit)
+
+  writeln("profit3=",getobjval)
+
+  forall(c in CL) writeln(c,"=",getsol(x(c)))
+
+  writeln("End running model")
+
+
+end-model

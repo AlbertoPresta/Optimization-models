@@ -1,0 +1,106 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    ZONE =  1..7
+    POS = 1..5
+    COP : array(ZONE,POS) of integer
+    cost : array(ZONE,POS) of integer
+    trasm : array(POS) of integer
+    dist : array(POS,POS) of integer
+    y : array(POS) of mpvar ! 1 se è posto i sensore nella posizione i
+    z : array(POS,POS) of mpvar ! 1 se sensore i è collegto con sensore j
+    costi:linctr
+    end-declarations
+
+COP::[1, 1, 1, 0, 0,
+	  1, 1, 1, 0, 0,
+	  0, 1, 0, 1, 1,
+	  1, 0, 1, 1, 0,
+	  0, 1, 0, 0, 1,
+	  0, 1, 0, 1, 0,
+	  1, 0, 1, 0, 1]
+
+
+cost :: [20,30,50,0,0,
+        30,10,25,0,0,
+        0,40,0,5,15,
+        10,0,15,10,0,
+        0,20,0,0,20,
+        0,30,0,5,0,
+        35,0,30,0,25]
+
+trasm :: [20,25,35,10,15]
+dist :: [0,30,20,25,30,
+         30,0,30,7,5,
+          20,30,0,30,20,
+          25,7,30,0,35,
+          30,5,20,35,0]
+
+forall(i in POS) y(i) is_binary
+forall(i in POS,j in POS) z(i,j) is_binary
+!impongo che se distanza(i,j)= 0 allora x(i,j) = 0
+
+forall(k in ZONE) do
+	sum(p in POS) COP(k,p)*y(p) >= 1
+end-do
+
+forall(i in POS) z(i,i)=0  ! non collegata con se stessa
+!non posso collegare due sensori che non ci sono 
+forall(i,j in POS |(i<j)  AND (dist(i,j) <= 30)) do
+	z(i,j) <= y(i)
+	z(i,j) <= y(j)
+	z(i,j) >= y(i) + y(j) -1
+end-do
+
+
+costi := sum(i in ZONE,j in POS)(cost(i,j)*y(j)) + sum(i in POS)(y(i)*trasm(i)) + sum(i in POS,j in POS)(z(i,j)*dist(i,j))
+
+minimise(costi)
+
+writeln("sol:   ",getobjval)
+
+writeln("sensori messi: ")
+forall(i in POS) do 
+    if(getsol(y(i))>0) then
+      writeln("sensore in posizione ",i,".")
+    end-if
+  end-do
+
+writeln("rete messa")
+forall(i in POS, j in POS) do
+    if(getsol(z(i,j))>0) then 
+      writeln("coppia di sensori collegati: (",i,",",j,") ")
+    end-if
+  end-do  
+
+
+writeln("******************PUNTO B********************")
+declarations
+costo2 : linctr
+end-declarations
+
+costo2 := sum(i in ZONE,j in POS)(cost(i,j)*y(j))  + sum(i in POS,j in POS)(z(i,j)*dist(i,j))
+minimise(costo2)
+
+writeln("sol:   ",getobjval)
+
+writeln("sensori messi: ")
+forall(i in POS) do 
+    if(getsol(y(i))>0) then
+      writeln("sensore in posizione ",i,".")
+    end-if
+  end-do
+
+writeln("rete messa")
+forall(i in POS, j in POS) do
+    if(getsol(z(i,j))>0) then 
+      writeln("coppia di sensori collegati: (",i,",",j,") ")
+    end-if
+  end-do  
+
+
+end-model
+

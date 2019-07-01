@@ -1,0 +1,78 @@
+model ModelName
+  options noimplicit
+  uses "mmxprs"
+  ! uses "mminsight" ! uncomment this line for an Xpress Insight model
+
+  declarations
+    slot = 1..15
+    aerei = 1..13
+
+    arrival : array(aerei) of integer
+    rit : array(aerei) of integer
+    inizio : array(slot) of integer ! inizio delle slot 
+    fine : array(slot) of integer ! fine delle slot
+    x : array(aerei) of mpvar
+    y : array(aerei,slot) of mpvar!1 se aereo i è arrivato alla slot j
+    delay:linctr
+  end-declarations
+  
+  arrival :: [0,13,25,28,29,34,35,36,40,45,48,50,54]
+rit :: [16,18,9,9,16,20,10,18,18,18,15,17,9]
+forall(i in aerei,j in slot) y(i,j) is_binary
+forall(i in aerei) x(i) is_integer
+
+! definire vettori start end endd
+forall(i in slot) do 
+    inizio(i):=6*(i-1)
+    fine(i):=inizio(i) + 5
+    end-do
+
+!il minuto di arrivo deve essere maggiore all'inizio del time dello slot assegnato 
+forall(i in aerei) do
+       x(i)>=sum(j in slot)y(i,j)*inizio(j)
+       x(i)<=sum(j in slot)y(i,j)*fine(j)
+      end-do
+  
+
+
+
+!gli aerei non possono arrivare prima del loro arrivo previsto 
+forall(i in aerei) x(i)>=arrival(i)
+
+
+!un solo aereo per ogni slot
+forall(j in slot) sum(i in aerei) y(i,j)<=1
+
+!tutti gli aerei devono arraivare
+forall(i in aerei) sum(j in slot) y(i,j)=1
+
+delay := sum(i in aerei) (x(i)-arrival(i))
+minimise(delay)
+
+writeln("delay:  ",getobjval)
+
+writeln("valore di ogni slot")
+forall(i in slot) do 
+    write("da ",inizio(i)," a ",fine(i),":  ")
+    forall(j in aerei) do 
+        if(getsol(x(j))<=fine(i) and getsol(x(j))>=inizio(i)) then 
+          writeln("volo V",j)
+          end-if
+        
+        end-do
+    end-do
+
+declarations
+costo_del : linctr
+end-declarations
+
+
+
+writeln("++++++++++++++++++++PUNTO B++++++++++++++++++++")
+costo_del := sum(i in aerei) (x(i)-arrival(i))*rit(i)
+
+minimise(costo_del)
+
+writeln("delay:  ",getobjval)
+
+end-model
